@@ -1,8 +1,11 @@
 /**
  * Dify Console API client.
  * Password is Base64-encoded (Dify's @decrypt_password_field decorator).
- * Auth via cookies (access_token, refresh_token, csrf_token) since Dify 1.9.2+.
+ * Auth via cookies (__Host-access_token, __Host-csrf_token) since Dify 1.9.2+.
+ * Supports auto-login and auto-retry on 401.
  */
+
+// --- Types ---
 
 interface LoginResponse {
 	result: string;
@@ -43,13 +46,99 @@ interface Workflow {
 	updated_at: string;
 }
 
+interface Dataset {
+	id: string;
+	name: string;
+	description: string;
+	provider: string;
+	permission: string;
+	data_source_type: string;
+	indexing_technique: string;
+	app_count: number;
+	document_count: number;
+	word_count: number;
+	created_by: string;
+	created_at: number;
+	updated_by: string;
+	updated_at: number;
+}
+
+interface DatasetListResponse {
+	data: Dataset[];
+	has_more: boolean;
+	total: number;
+	page: number;
+	limit: number;
+}
+
+interface Document {
+	id: string;
+	position: number;
+	data_source_type: string;
+	name: string;
+	created_from: string;
+	created_by: string;
+	created_at: number;
+	tokens: number;
+	indexing_status: string;
+	word_count: number;
+	enabled: boolean;
+	disabled_at: number | null;
+	archived: boolean;
+	display_status: string;
+	hit_count: number;
+}
+
+interface DocumentListResponse {
+	data: Document[];
+	has_more: boolean;
+	total: number;
+	page: number;
+	limit: number;
+}
+
+interface Segment {
+	id: string;
+	position: number;
+	document_id: string;
+	content: string;
+	answer: string;
+	word_count: number;
+	tokens: number;
+	keywords: string[];
+	index_node_id: string;
+	index_node_hash: string;
+	hit_count: number;
+	enabled: boolean;
+	created_by: string;
+	created_at: number;
+	indexing_at: number;
+	completed_at: number;
+	status: string;
+}
+
+interface SegmentListResponse {
+	data: Segment[];
+	has_more: boolean;
+	total: number;
+	page: number;
+	limit: number;
+}
+
+// --- Client ---
+
 export class DifyClient {
 	private baseUrl: string;
+	private email: string;
+	private password: string;
 	private cookies: Map<string, string> = new Map();
 	private csrfToken: string | null = null;
+	private authenticated = false;
 
-	constructor(baseUrl: string) {
+	constructor(baseUrl: string, email: string, password: string) {
 		this.baseUrl = baseUrl.replace(/\/$/, "");
+		this.email = email;
+		this.password = password;
 	}
 
 	private parseCookies(res: Response): void {
@@ -71,11 +160,7 @@ export class DifyClient {
 			.join("; ");
 	}
 
-	private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
-		if (this.cookies.size === 0 && !path.includes("/login")) {
-			throw new Error("Not authenticated. Call login() first.");
-		}
-
+	private async rawRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
 		const headers: Record<string, string> = {
 			"Content-Type": "application/json",
 			...(options.headers as Record<string, string>),
@@ -105,13 +190,34 @@ export class DifyClient {
 		return res.json() as Promise<T>;
 	}
 
-	async login(email: string, password: string): Promise<string> {
-		const passwordB64 = Buffer.from(password).toString("base64");
+	private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+		if (!this.authenticated) {
+			await this.login();
+		}
 
-		const data = await this.request<LoginResponse>("/login", {
+		try {
+			return await this.rawRequest<T>(path, options);
+		} catch (e) {
+			if (e instanceof Error && e.message.includes("401")) {
+				this.authenticated = false;
+				await this.login();
+				return this.rawRequest<T>(path, options);
+			}
+			throw e;
+		}
+	}
+
+	async login(): Promise<string> {
+		if (!this.email || !this.password) {
+			throw new Error("DIFY_EMAIL and DIFY_PASSWORD env vars required");
+		}
+
+		const passwordB64 = Buffer.from(this.password).toString("base64");
+
+		const data = await this.rawRequest<LoginResponse>("/login", {
 			method: "POST",
 			body: JSON.stringify({
-				email,
+				email: this.email,
 				password: passwordB64,
 				language: "en-US",
 				remember_me: true,
@@ -120,11 +226,14 @@ export class DifyClient {
 
 		const hasAccessToken = Array.from(this.cookies.keys()).some((k) => k.endsWith("access_token"));
 		if (data.result === "success" || hasAccessToken) {
+			this.authenticated = true;
 			return "Login successful";
 		}
 
 		throw new Error(`Login failed: ${JSON.stringify(data)}`);
 	}
+
+	// --- Apps ---
 
 	async listApps(page = 1, limit = 30): Promise<AppListResponse> {
 		return this.request<AppListResponse>(`/apps?page=${page}&limit=${limit}`);
@@ -151,9 +260,7 @@ export class DifyClient {
 	}
 
 	async deleteApp(appId: string): Promise<{ result: string }> {
-		return this.request<{ result: string }>(`/apps/${appId}`, {
-			method: "DELETE",
-		});
+		return this.request<{ result: string }>(`/apps/${appId}`, { method: "DELETE" });
 	}
 
 	async importDSL(
@@ -207,15 +314,11 @@ export class DifyClient {
 	}
 
 	async enableApi(appId: string): Promise<{ result: string }> {
-		return this.request<{ result: string }>(`/apps/${appId}/api-enable`, {
-			method: "POST",
-		});
+		return this.request<{ result: string }>(`/apps/${appId}/api-enable`, { method: "POST" });
 	}
 
 	async enableSite(appId: string): Promise<{ result: string }> {
-		return this.request<{ result: string }>(`/apps/${appId}/site-enable`, {
-			method: "POST",
-		});
+		return this.request<{ result: string }>(`/apps/${appId}/site-enable`, { method: "POST" });
 	}
 
 	async copyApp(appId: string, name?: string): Promise<App> {
@@ -239,6 +342,124 @@ export class DifyClient {
 		return this.request<{ id: string; token: string; created_at: number }>(
 			`/apps/${appId}/api-keys`,
 			{ method: "POST" },
+		);
+	}
+
+	// --- Knowledge Base (Datasets) ---
+
+	async listDatasets(page = 1, limit = 30): Promise<DatasetListResponse> {
+		return this.request<DatasetListResponse>(`/datasets?page=${page}&limit=${limit}`);
+	}
+
+	async createDataset(
+		name: string,
+		description = "",
+		indexingTechnique: "high_quality" | "economy" = "high_quality",
+		permission: "only_me" | "all_team_members" = "all_team_members",
+	): Promise<Dataset> {
+		return this.request<Dataset>("/datasets", {
+			method: "POST",
+			body: JSON.stringify({
+				name,
+				description,
+				indexing_technique: indexingTechnique,
+				permission,
+			}),
+		});
+	}
+
+	async deleteDataset(datasetId: string): Promise<void> {
+		return this.request<void>(`/datasets/${datasetId}`, { method: "DELETE" });
+	}
+
+	async listDocuments(datasetId: string, page = 1, limit = 30): Promise<DocumentListResponse> {
+		return this.request<DocumentListResponse>(
+			`/datasets/${datasetId}/documents?page=${page}&limit=${limit}`,
+		);
+	}
+
+	async createDocumentByText(
+		datasetId: string,
+		name: string,
+		text: string,
+		indexingTechnique: "high_quality" | "economy" = "high_quality",
+	): Promise<{ document: Document; batch: string }> {
+		return this.request<{ document: Document; batch: string }>(
+			`/datasets/${datasetId}/document/create-by-text`,
+			{
+				method: "POST",
+				body: JSON.stringify({
+					name,
+					text,
+					indexing_technique: indexingTechnique,
+					process_rule: { mode: "automatic" },
+				}),
+			},
+		);
+	}
+
+	async deleteDocument(datasetId: string, documentId: string): Promise<{ result: string }> {
+		return this.request<{ result: string }>(`/datasets/${datasetId}/documents/${documentId}`, {
+			method: "DELETE",
+		});
+	}
+
+	async listSegments(
+		datasetId: string,
+		documentId: string,
+		page = 1,
+		limit = 30,
+	): Promise<SegmentListResponse> {
+		return this.request<SegmentListResponse>(
+			`/datasets/${datasetId}/documents/${documentId}/segments?page=${page}&limit=${limit}`,
+		);
+	}
+
+	async createSegment(
+		datasetId: string,
+		documentId: string,
+		content: string,
+		answer = "",
+		keywords: string[] = [],
+	): Promise<{ data: Segment }> {
+		return this.request<{ data: Segment }>(
+			`/datasets/${datasetId}/documents/${documentId}/segments`,
+			{
+				method: "POST",
+				body: JSON.stringify({
+					segments: [{ content, answer, keywords }],
+				}),
+			},
+		);
+	}
+
+	async updateSegment(
+		datasetId: string,
+		documentId: string,
+		segmentId: string,
+		content: string,
+		answer = "",
+		keywords: string[] = [],
+	): Promise<{ data: Segment }> {
+		return this.request<{ data: Segment }>(
+			`/datasets/${datasetId}/documents/${documentId}/segments/${segmentId}`,
+			{
+				method: "PATCH",
+				body: JSON.stringify({
+					segment: { content, answer, keywords },
+				}),
+			},
+		);
+	}
+
+	async deleteSegment(
+		datasetId: string,
+		documentId: string,
+		segmentId: string,
+	): Promise<{ result: string }> {
+		return this.request<{ result: string }>(
+			`/datasets/${datasetId}/documents/${documentId}/segments/${segmentId}`,
+			{ method: "DELETE" },
 		);
 	}
 }

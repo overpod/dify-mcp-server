@@ -1,33 +1,23 @@
+#!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { DifyClient } from "./dify-client.js";
 
-const DIFY_BASE_URL = process.env.DIFY_BASE_URL || "https://dify.api-app.org";
-const DIFY_EMAIL = process.env.DIFY_EMAIL || "";
-const DIFY_PASSWORD = process.env.DIFY_PASSWORD || "";
+const DIFY_BASE_URL = process.env.DIFY_BASE_URL;
+const DIFY_EMAIL = process.env.DIFY_EMAIL;
+const DIFY_PASSWORD = process.env.DIFY_PASSWORD;
 
-const client = new DifyClient(DIFY_BASE_URL);
+if (!DIFY_BASE_URL || !DIFY_EMAIL || !DIFY_PASSWORD) {
+	console.error("Error: DIFY_BASE_URL, DIFY_EMAIL, DIFY_PASSWORD env vars required");
+	process.exit(1);
+}
+
+const client = new DifyClient(DIFY_BASE_URL, DIFY_EMAIL, DIFY_PASSWORD);
 
 const server = new McpServer({
 	name: "dify-mcp-server",
-	version: "0.1.0",
-});
-
-// --- Auth ---
-
-server.tool("login", "Authenticate with Dify Console API", {}, async () => {
-	if (!DIFY_EMAIL || !DIFY_PASSWORD) {
-		return {
-			content: [{ type: "text", text: "Error: DIFY_EMAIL and DIFY_PASSWORD env vars required" }],
-		};
-	}
-	try {
-		const result = await client.login(DIFY_EMAIL, DIFY_PASSWORD);
-		return { content: [{ type: "text", text: result }] };
-	} catch (e) {
-		return { content: [{ type: "text", text: `Login failed: ${e}` }] };
-	}
+	version: "0.2.0",
 });
 
 // --- Apps ---
@@ -206,12 +196,192 @@ server.tool(
 	},
 );
 
+// --- Knowledge Base (Datasets) ---
+
+server.tool(
+	"list_datasets",
+	"List all knowledge base datasets",
+	{ page: z.number().optional(), limit: z.number().optional() },
+	async ({ page, limit }) => {
+		const data = await client.listDatasets(page ?? 1, limit ?? 30);
+		const summary = data.data
+			.map((d) => `- ${d.name} (${d.document_count} docs, ${d.word_count} words) [${d.id}]`)
+			.join("\n");
+		return {
+			content: [{ type: "text", text: `Total: ${data.total}\n\n${summary || "No datasets"}` }],
+		};
+	},
+);
+
+server.tool(
+	"create_dataset",
+	"Create a new knowledge base dataset",
+	{
+		name: z.string().describe("Dataset name"),
+		description: z.string().optional().describe("Dataset description"),
+		indexing_technique: z
+			.enum(["high_quality", "economy"])
+			.optional()
+			.describe("Indexing technique (default: high_quality)"),
+	},
+	async ({ name, description, indexing_technique }) => {
+		const ds = await client.createDataset(name, description, indexing_technique ?? "high_quality");
+		return {
+			content: [{ type: "text", text: `Created dataset: ${ds.name}\nID: ${ds.id}` }],
+		};
+	},
+);
+
+server.tool(
+	"delete_dataset",
+	"Delete a knowledge base dataset",
+	{ dataset_id: z.string().describe("Dataset ID") },
+	async ({ dataset_id }) => {
+		await client.deleteDataset(dataset_id);
+		return { content: [{ type: "text", text: "Dataset deleted" }] };
+	},
+);
+
+server.tool(
+	"list_documents",
+	"List documents in a knowledge base dataset",
+	{
+		dataset_id: z.string().describe("Dataset ID"),
+		page: z.number().optional(),
+		limit: z.number().optional(),
+	},
+	async ({ dataset_id, page, limit }) => {
+		const data = await client.listDocuments(dataset_id, page ?? 1, limit ?? 30);
+		const summary = data.data
+			.map((d) => `- ${d.name} (${d.word_count} words, ${d.indexing_status}) [${d.id}]`)
+			.join("\n");
+		return {
+			content: [{ type: "text", text: `Total: ${data.total}\n\n${summary || "No documents"}` }],
+		};
+	},
+);
+
+server.tool(
+	"create_document_by_text",
+	"Add a text document to a knowledge base dataset",
+	{
+		dataset_id: z.string().describe("Dataset ID"),
+		name: z.string().describe("Document name"),
+		text: z.string().describe("Document text content"),
+	},
+	async ({ dataset_id, name, text }) => {
+		const result = await client.createDocumentByText(dataset_id, name, text);
+		return {
+			content: [
+				{
+					type: "text",
+					text: `Document created: ${result.document.name}\nID: ${result.document.id}\nBatch: ${result.batch}`,
+				},
+			],
+		};
+	},
+);
+
+server.tool(
+	"delete_document",
+	"Delete a document from a knowledge base dataset",
+	{
+		dataset_id: z.string().describe("Dataset ID"),
+		document_id: z.string().describe("Document ID"),
+	},
+	async ({ dataset_id, document_id }) => {
+		const result = await client.deleteDocument(dataset_id, document_id);
+		return { content: [{ type: "text", text: `Deleted: ${result.result}` }] };
+	},
+);
+
+server.tool(
+	"list_segments",
+	"List segments (chunks) of a document",
+	{
+		dataset_id: z.string().describe("Dataset ID"),
+		document_id: z.string().describe("Document ID"),
+		page: z.number().optional(),
+		limit: z.number().optional(),
+	},
+	async ({ dataset_id, document_id, page, limit }) => {
+		const data = await client.listSegments(dataset_id, document_id, page ?? 1, limit ?? 30);
+		const summary = data.data
+			.map(
+				(s) =>
+					`- [${s.id}] ${s.content.substring(0, 80)}${s.content.length > 80 ? "..." : ""} (${s.word_count} words)`,
+			)
+			.join("\n");
+		return {
+			content: [{ type: "text", text: `Total: ${data.total}\n\n${summary || "No segments"}` }],
+		};
+	},
+);
+
+server.tool(
+	"create_segment",
+	"Add a segment (chunk) to a document",
+	{
+		dataset_id: z.string().describe("Dataset ID"),
+		document_id: z.string().describe("Document ID"),
+		content: z.string().describe("Segment text content"),
+		answer: z.string().optional().describe("Segment answer (for Q&A datasets)"),
+		keywords: z.array(z.string()).optional().describe("Keywords for the segment"),
+	},
+	async ({ dataset_id, document_id, content, answer, keywords }) => {
+		const result = await client.createSegment(dataset_id, document_id, content, answer, keywords);
+		return {
+			content: [{ type: "text", text: `Segment created: ${result.data.id}` }],
+		};
+	},
+);
+
+server.tool(
+	"update_segment",
+	"Update a segment (chunk) in a document",
+	{
+		dataset_id: z.string().describe("Dataset ID"),
+		document_id: z.string().describe("Document ID"),
+		segment_id: z.string().describe("Segment ID"),
+		content: z.string().describe("Updated text content"),
+		answer: z.string().optional().describe("Updated answer"),
+		keywords: z.array(z.string()).optional().describe("Updated keywords"),
+	},
+	async ({ dataset_id, document_id, segment_id, content, answer, keywords }) => {
+		const result = await client.updateSegment(
+			dataset_id,
+			document_id,
+			segment_id,
+			content,
+			answer,
+			keywords,
+		);
+		return {
+			content: [{ type: "text", text: `Segment updated: ${result.data.id}` }],
+		};
+	},
+);
+
+server.tool(
+	"delete_segment",
+	"Delete a segment (chunk) from a document",
+	{
+		dataset_id: z.string().describe("Dataset ID"),
+		document_id: z.string().describe("Document ID"),
+		segment_id: z.string().describe("Segment ID"),
+	},
+	async ({ dataset_id, document_id, segment_id }) => {
+		const result = await client.deleteSegment(dataset_id, document_id, segment_id);
+		return { content: [{ type: "text", text: `Deleted: ${result.result}` }] };
+	},
+);
+
 // --- Start ---
 
 async function main() {
 	const transport = new StdioServerTransport();
 	await server.connect(transport);
-	console.error("Dify MCP Server running on stdio");
+	console.error("Dify MCP Server v0.2.0 running on stdio");
 }
 
 main().catch((err) => {

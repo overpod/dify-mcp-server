@@ -1,15 +1,35 @@
 {
   "name": "dify-mcp-server",
-  "version": "0.1.0",
-  "description": "MCP server for Dify Console API — programmatic agent creation",
+  "version": "0.2.0",
+  "description": "MCP server for Dify Console API — programmatic agent/app creation, knowledge base management, workflow control",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "dify-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "check": "biome check src/",
     "fix": "biome check --write src/"
+  },
+  "keywords": [
+    "mcp",
+    "dify",
+    "ai",
+    "agent",
+    "claude",
+    "model-context-protocol",
+    "knowledge-base"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/overpod/dify-mcp-server"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.28.0"
