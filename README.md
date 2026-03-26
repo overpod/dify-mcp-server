@@ -147,6 +147,23 @@ Or with npx:
 | `delete_mcp_server` | Remove an MCP server |
 | `refresh_mcp_server_tools` | Re-fetch tools from an MCP server |
 
+### Tags
+| Tool | Description |
+|------|-------------|
+| `list_tags` | List all tags with binding counts |
+| `create_tag` | Create a new tag |
+| `delete_tag` | Delete a tag |
+| `bind_tag` | Attach tags to an app or dataset |
+| `unbind_tag` | Remove a tag from an app or dataset |
+
+### Conversations & Messages
+| Tool | Description |
+|------|-------------|
+| `list_conversations` | List conversations for an app |
+| `delete_conversation` | Delete a conversation |
+| `list_messages` | List messages in a conversation |
+| `get_message` | Get full message details |
+
 ### Knowledge Base
 | Tool | Description |
 |------|-------------|

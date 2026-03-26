@@ -66,6 +66,54 @@ interface MCPTool {
 	parameters: Record<string, unknown>;
 }
 
+interface Tag {
+	id: string;
+	name: string;
+	type: string;
+	binding_count: number;
+}
+
+interface Conversation {
+	id: string;
+	status: string;
+	from_source: string;
+	from_end_user_session_id: string;
+	from_account_name: string;
+	name?: string;
+	summary?: string;
+	message_count?: number;
+	created_at: number;
+	updated_at: number;
+}
+
+interface ConversationListResponse {
+	data: Conversation[];
+	has_more: boolean;
+	total: number;
+	page: number;
+	limit: number;
+}
+
+interface Message {
+	id: string;
+	conversation_id: string;
+	query: string;
+	answer: string;
+	message_tokens: number;
+	answer_tokens: number;
+	provider_response_latency: number;
+	from_source: string;
+	created_at: number;
+	status: string;
+	error: string | null;
+}
+
+interface MessageListResponse {
+	data: Message[];
+	has_more: boolean;
+	limit: number;
+}
+
 interface App {
 	id: string;
 	name: string;
@@ -697,5 +745,91 @@ export class DifyClient {
 
 	async refreshMCPServerTools(providerId: string): Promise<MCPServer> {
 		return this.request<MCPServer>(`/workspaces/current/tool-provider/mcp/update/${providerId}`);
+	}
+
+	// --- Tags ---
+
+	async listTags(type?: string): Promise<Tag[]> {
+		const query = type ? `?type=${type}` : "";
+		return this.request<Tag[]>(`/tags${query}`);
+	}
+
+	async createTag(name: string, type: "app" | "knowledge" = "app"): Promise<Tag> {
+		return this.request<Tag>("/tags", {
+			method: "POST",
+			body: JSON.stringify({ name, type }),
+		});
+	}
+
+	async deleteTag(tagId: string): Promise<void> {
+		return this.request<void>(`/tags/${tagId}`, { method: "DELETE" });
+	}
+
+	async bindTag(
+		tagIds: string[],
+		targetId: string,
+		type: "app" | "knowledge",
+	): Promise<{ result: string }> {
+		return this.request<{ result: string }>("/tag-bindings/create", {
+			method: "POST",
+			body: JSON.stringify({ tag_ids: tagIds, target_id: targetId, type }),
+		});
+	}
+
+	async unbindTag(
+		tagId: string,
+		targetId: string,
+		type: "app" | "knowledge",
+	): Promise<{ result: string }> {
+		return this.request<{ result: string }>("/tag-bindings/remove", {
+			method: "POST",
+			body: JSON.stringify({ tag_id: tagId, target_id: targetId, type }),
+		});
+	}
+
+	// --- Conversations ---
+
+	async listChatConversations(
+		appId: string,
+		page = 1,
+		limit = 20,
+		sortBy = "-updated_at",
+	): Promise<ConversationListResponse> {
+		return this.request<ConversationListResponse>(
+			`/apps/${appId}/chat-conversations?page=${page}&limit=${limit}&sort_by=${sortBy}`,
+		);
+	}
+
+	async listCompletionConversations(
+		appId: string,
+		page = 1,
+		limit = 20,
+	): Promise<ConversationListResponse> {
+		return this.request<ConversationListResponse>(
+			`/apps/${appId}/completion-conversations?page=${page}&limit=${limit}`,
+		);
+	}
+
+	async deleteChatConversation(appId: string, conversationId: string): Promise<{ result: string }> {
+		return this.request<{ result: string }>(`/apps/${appId}/chat-conversations/${conversationId}`, {
+			method: "DELETE",
+		});
+	}
+
+	// --- Messages ---
+
+	async listChatMessages(
+		appId: string,
+		conversationId: string,
+		limit = 20,
+		firstId?: string,
+	): Promise<MessageListResponse> {
+		let url = `/apps/${appId}/chat-messages?conversation_id=${conversationId}&limit=${limit}`;
+		if (firstId) url += `&first_id=${firstId}`;
+		return this.request<MessageListResponse>(url);
+	}
+
+	async getMessage(appId: string, messageId: string): Promise<Message> {
+		return this.request<Message>(`/apps/${appId}/messages/${messageId}`);
 	}
 }

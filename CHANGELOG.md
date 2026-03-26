@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-03-26
+
+### Added
+- **Tags**: Organize apps and knowledge bases with tags
+  - `list_tags` — list all tags with binding counts
+  - `create_tag` — create a new tag (app or knowledge type)
+  - `delete_tag` — delete a tag
+  - `bind_tag` — attach tags to an app or dataset
+  - `unbind_tag` — remove a tag from an app or dataset
+- **Conversations**: Browse conversation history
+  - `list_conversations` — list conversations for an app
+  - `delete_conversation` — delete a conversation
+- **Messages**: Read message history and details
+  - `list_messages` — list messages in a conversation with pagination
+  - `get_message` — get full message details (query, answer, tokens, latency)
+
 ## [0.5.0] - 2026-03-26
 
 ### Added

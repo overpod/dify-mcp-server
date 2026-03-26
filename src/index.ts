@@ -17,7 +17,7 @@ const client = new DifyClient(DIFY_BASE_URL, DIFY_EMAIL, DIFY_PASSWORD);
 
 const server = new McpServer({
 	name: "dify-mcp-server",
-	version: "0.5.0",
+	version: "0.6.0",
 });
 
 // --- Apps ---
@@ -765,12 +765,175 @@ server.tool(
 	},
 );
 
+// --- Tags ---
+
+server.tool(
+	"list_tags",
+	"List tags for organizing apps or knowledge bases",
+	{
+		type: z.enum(["app", "knowledge"]).optional().describe("Filter by tag type"),
+	},
+	async ({ type }) => {
+		const tags = await client.listTags(type);
+		const summary = tags
+			.map((t) => `- ${t.name} [${t.id}] (${t.type}, ${t.binding_count} bindings)`)
+			.join("\n");
+		return {
+			content: [{ type: "text", text: `Tags: ${tags.length}\n\n${summary || "No tags"}` }],
+		};
+	},
+);
+
+server.tool(
+	"create_tag",
+	"Create a new tag for organizing apps or knowledge bases",
+	{
+		name: z.string().describe("Tag name (1-50 chars)"),
+		tag_type: z.enum(["app", "knowledge"]).optional().describe("Tag type (default: app)"),
+	},
+	async ({ name, tag_type }) => {
+		const tag = await client.createTag(name, tag_type ?? "app");
+		return {
+			content: [{ type: "text", text: `Created tag: ${tag.name} [${tag.id}] (${tag.type})` }],
+		};
+	},
+);
+
+server.tool(
+	"delete_tag",
+	"Delete a tag",
+	{ tag_id: z.string().describe("Tag ID") },
+	async ({ tag_id }) => {
+		await client.deleteTag(tag_id);
+		return { content: [{ type: "text", text: "Tag deleted" }] };
+	},
+);
+
+server.tool(
+	"bind_tag",
+	"Bind one or more tags to an app or knowledge base",
+	{
+		tag_ids: z.array(z.string()).describe("Array of tag IDs to bind"),
+		target_id: z.string().describe("App or dataset ID"),
+		type: z.enum(["app", "knowledge"]).describe("Target type"),
+	},
+	async ({ tag_ids, target_id, type }) => {
+		const result = await client.bindTag(tag_ids, target_id, type);
+		return {
+			content: [{ type: "text", text: `Bound ${tag_ids.length} tag(s): ${result.result}` }],
+		};
+	},
+);
+
+server.tool(
+	"unbind_tag",
+	"Remove a tag from an app or knowledge base",
+	{
+		tag_id: z.string().describe("Tag ID to remove"),
+		target_id: z.string().describe("App or dataset ID"),
+		type: z.enum(["app", "knowledge"]).describe("Target type"),
+	},
+	async ({ tag_id, target_id, type }) => {
+		const result = await client.unbindTag(tag_id, target_id, type);
+		return { content: [{ type: "text", text: `Unbound: ${result.result}` }] };
+	},
+);
+
+// --- Conversations ---
+
+server.tool(
+	"list_conversations",
+	"List conversations for a chat or completion app",
+	{
+		app_id: z.string().describe("Application ID"),
+		page: z.number().optional(),
+		limit: z.number().optional(),
+	},
+	async ({ app_id, page, limit }) => {
+		const data = await client.listChatConversations(app_id, page ?? 1, limit ?? 20);
+		const summary = data.data
+			.map(
+				(c) =>
+					`- ${c.name || c.summary || "unnamed"} [${c.id}] — ${c.message_count ?? 0} msgs, ${c.from_source}`,
+			)
+			.join("\n");
+		return {
+			content: [
+				{ type: "text", text: `Conversations: ${data.total}\n\n${summary || "No conversations"}` },
+			],
+		};
+	},
+);
+
+server.tool(
+	"delete_conversation",
+	"Delete a conversation from an app",
+	{
+		app_id: z.string().describe("Application ID"),
+		conversation_id: z.string().describe("Conversation ID"),
+	},
+	async ({ app_id, conversation_id }) => {
+		const result = await client.deleteChatConversation(app_id, conversation_id);
+		return { content: [{ type: "text", text: `Deleted: ${result.result}` }] };
+	},
+);
+
+// --- Messages ---
+
+server.tool(
+	"list_messages",
+	"List messages in a conversation",
+	{
+		app_id: z.string().describe("Application ID"),
+		conversation_id: z.string().describe("Conversation ID"),
+		limit: z.number().optional().describe("Number of messages (default 20, max 100)"),
+		first_id: z.string().optional().describe("Cursor: oldest message ID from previous page"),
+	},
+	async ({ app_id, conversation_id, limit, first_id }) => {
+		const data = await client.listChatMessages(app_id, conversation_id, limit ?? 20, first_id);
+		const summary = data.data
+			.map(
+				(m) =>
+					`[${m.id}] Q: ${m.query.substring(0, 60)}${m.query.length > 60 ? "..." : ""}\nA: ${m.answer.substring(0, 80)}${m.answer.length > 80 ? "..." : ""} (${m.answer_tokens} tokens)`,
+			)
+			.join("\n\n");
+		return {
+			content: [
+				{
+					type: "text",
+					text: `Messages: ${data.data.length}${data.has_more ? " (has more)" : ""}\n\n${summary || "No messages"}`,
+				},
+			],
+		};
+	},
+);
+
+server.tool(
+	"get_message",
+	"Get a single message with full details",
+	{
+		app_id: z.string().describe("Application ID"),
+		message_id: z.string().describe("Message ID"),
+	},
+	async ({ app_id, message_id }) => {
+		const m = await client.getMessage(app_id, message_id);
+		return {
+			content: [
+				{
+					type: "text",
+					text: `Message: ${m.id}\nStatus: ${m.status}\nQuery: ${m.query}\nAnswer: ${m.answer}\nTokens: ${m.message_tokens} in / ${m.answer_tokens} out\nLatency: ${m.provider_response_latency}s\nSource: ${m.from_source}\nCreated: ${new Date(m.created_at * 1000).toISOString()}`,
+				},
+			],
+		};
+	},
+);
+
 // --- Start ---
 
 async function main() {
 	const transport = new StdioServerTransport();
 	await server.connect(transport);
-	console.error("Dify MCP Server v0.5.0 running on stdio");
+	console.error("Dify MCP Server v0.6.0 running on stdio");
 }
 
 main().catch((err) => {
