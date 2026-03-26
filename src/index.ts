@@ -17,7 +17,7 @@ const client = new DifyClient(DIFY_BASE_URL, DIFY_EMAIL, DIFY_PASSWORD);
 
 const server = new McpServer({
 	name: "dify-mcp-server",
-	version: "0.4.0",
+	version: "0.5.0",
 });
 
 // --- Apps ---
@@ -493,6 +493,134 @@ server.tool(
 	},
 );
 
+server.tool(
+	"uninstall_plugin",
+	"Uninstall a plugin from Dify",
+	{
+		plugin_installation_id: z.string().describe("Plugin installation ID (from list_plugins)"),
+	},
+	async ({ plugin_installation_id }) => {
+		const result = await client.uninstallPlugin(plugin_installation_id);
+		return { content: [{ type: "text", text: `Uninstalled: ${result.result}` }] };
+	},
+);
+
+server.tool(
+	"upgrade_plugin",
+	"Upgrade an installed plugin to a new version from the marketplace",
+	{
+		original_plugin_id: z.string().describe("Current plugin identifier (e.g. author/plugin:1.0.0)"),
+		new_plugin_id: z.string().describe("New version identifier (e.g. author/plugin:2.0.0)"),
+	},
+	async ({ original_plugin_id, new_plugin_id }) => {
+		const result = await client.upgradePluginFromMarketplace(original_plugin_id, new_plugin_id);
+		return {
+			content: [{ type: "text", text: `Upgrade started\nTask ID: ${result.task_id}` }],
+		};
+	},
+);
+
+server.tool(
+	"get_plugin_task",
+	"Check the status of a plugin install/upgrade task",
+	{
+		task_id: z.string().describe("Task ID from install_plugin or upgrade_plugin"),
+	},
+	async ({ task_id }) => {
+		const task = await client.getPluginTask(task_id);
+		return {
+			content: [
+				{
+					type: "text",
+					text: `Task: ${task.id}\nStatus: ${task.status}${task.message ? `\nMessage: ${task.message}` : ""}${task.plugin_unique_identifier ? `\nPlugin: ${task.plugin_unique_identifier}` : ""}`,
+				},
+			],
+		};
+	},
+);
+
+// --- Default Model ---
+
+server.tool(
+	"get_default_model",
+	"Get the default model for a given type (llm, text-embedding, rerank, etc.)",
+	{
+		model_type: z
+			.enum(["llm", "text-embedding", "rerank", "speech2text", "moderation", "tts"])
+			.describe("Model type"),
+	},
+	async ({ model_type }) => {
+		const result = await client.getDefaultModel(model_type);
+		if (!result.data) {
+			return { content: [{ type: "text", text: `No default ${model_type} model set` }] };
+		}
+		return {
+			content: [
+				{
+					type: "text",
+					text: `Default ${model_type}: ${result.data.model} (provider: ${result.data.provider})`,
+				},
+			],
+		};
+	},
+);
+
+server.tool(
+	"set_default_model",
+	"Set the default model for a given type",
+	{
+		model_type: z
+			.enum(["llm", "text-embedding", "rerank", "speech2text", "moderation", "tts"])
+			.describe("Model type"),
+		provider: z.string().describe("Provider identifier (e.g. openai, anthropic)"),
+		model: z.string().describe("Model identifier (e.g. gpt-4o, claude-sonnet-4-20250514)"),
+	},
+	async ({ model_type, provider, model }) => {
+		const result = await client.setDefaultModel(model_type, provider, model);
+		return {
+			content: [{ type: "text", text: `Default ${model_type} set to ${model}: ${result.result}` }],
+		};
+	},
+);
+
+// --- App Details ---
+
+server.tool(
+	"get_app",
+	"Get detailed information about a specific application",
+	{
+		app_id: z.string().describe("Application ID"),
+	},
+	async ({ app_id }) => {
+		const app = await client.getApp(app_id);
+		return {
+			content: [
+				{
+					type: "text",
+					text: `${app.name} (${app.mode})\nID: ${app.id}\nDescription: ${app.description || "none"}\nIcon: ${app.icon}\nCreated: ${new Date(app.created_at * 1000).toISOString()}`,
+				},
+			],
+		};
+	},
+);
+
+server.tool(
+	"update_app",
+	"Update an application's name, description, or icon",
+	{
+		app_id: z.string().describe("Application ID"),
+		name: z.string().optional().describe("New name"),
+		description: z.string().optional().describe("New description"),
+		icon: z.string().optional().describe("New emoji icon"),
+	},
+	async ({ app_id, name, description, icon }) => {
+		const app = await client.updateApp(app_id, name, description, icon);
+		return {
+			content: [{ type: "text", text: `Updated: ${app.name} (${app.mode}) [${app.id}]` }],
+		};
+	},
+);
+
 // --- MCP Servers ---
 
 server.tool("list_mcp_servers", "List MCP servers configured in Dify", {}, async () => {
@@ -642,7 +770,7 @@ server.tool(
 async function main() {
 	const transport = new StdioServerTransport();
 	await server.connect(transport);
-	console.error("Dify MCP Server v0.4.0 running on stdio");
+	console.error("Dify MCP Server v0.5.0 running on stdio");
 }
 
 main().catch((err) => {

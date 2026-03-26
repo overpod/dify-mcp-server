@@ -93,6 +93,8 @@ Or with npx:
 |------|-------------|
 | `list_apps` | List all applications |
 | `create_app` | Create app (chat, agent-chat, advanced-chat, workflow, completion) |
+| `get_app` | Get detailed info about an application |
+| `update_app` | Update name, description, or icon |
 | `delete_app` | Delete an application |
 | `copy_app` | Duplicate an application |
 
@@ -123,12 +125,17 @@ Or with npx:
 | `list_model_providers` | List all providers (OpenAI, Anthropic, etc.) with status |
 | `list_models` | List models for a specific provider |
 | `list_models_by_type` | List all models by type across all providers |
+| `get_default_model` | Get the default model for a type |
+| `set_default_model` | Set the default model for a type |
 
 ### Plugins
 | Tool | Description |
 |------|-------------|
 | `list_plugins` | List installed plugins |
 | `install_plugin` | Install a plugin from the marketplace |
+| `uninstall_plugin` | Remove an installed plugin |
+| `upgrade_plugin` | Upgrade plugin to a new version |
+| `get_plugin_task` | Check install/upgrade task status |
 
 ### MCP Servers
 | Tool | Description |

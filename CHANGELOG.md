@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-26
+
+### Added
+- **Plugin lifecycle**: Full plugin management
+  - `uninstall_plugin` — remove an installed plugin
+  - `upgrade_plugin` — upgrade plugin to a new version from marketplace
+  - `get_plugin_task` — check status of async install/upgrade tasks
+- **Default model**: Workspace model configuration
+  - `get_default_model` — get the default model for a type (llm, embedding, etc.)
+  - `set_default_model` — set the default model for a type
+- **App details**: Read and update applications
+  - `get_app` — get detailed info about an application
+  - `update_app` — update name, description, or icon
+
 ## [0.4.0] - 2026-03-26
 
 ### Added

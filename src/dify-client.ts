@@ -554,6 +554,82 @@ export class DifyClient {
 		);
 	}
 
+	async uninstallPlugin(pluginInstallationId: string): Promise<{ result: string }> {
+		return this.request<{ result: string }>("/workspaces/current/plugin/uninstall", {
+			method: "POST",
+			body: JSON.stringify({ plugin_installation_id: pluginInstallationId }),
+		});
+	}
+
+	async upgradePluginFromMarketplace(
+		originalPluginId: string,
+		newPluginId: string,
+	): Promise<{ task_id: string }> {
+		return this.request<{ task_id: string }>("/workspaces/current/plugin/upgrade/marketplace", {
+			method: "POST",
+			body: JSON.stringify({
+				original_plugin_unique_identifier: originalPluginId,
+				new_plugin_unique_identifier: newPluginId,
+			}),
+		});
+	}
+
+	async getPluginTask(
+		taskId: string,
+	): Promise<{ id: string; status: string; message?: string; plugin_unique_identifier?: string }> {
+		return this.request<{
+			id: string;
+			status: string;
+			message?: string;
+			plugin_unique_identifier?: string;
+		}>(`/workspaces/current/plugin/tasks/${taskId}`);
+	}
+
+	// --- Models (default) ---
+
+	async getDefaultModel(
+		modelType: string,
+	): Promise<{ data: { provider: string; model: string; model_type: string } | null }> {
+		return this.request<{
+			data: { provider: string; model: string; model_type: string } | null;
+		}>(`/workspaces/current/default-model?model_type=${modelType}`);
+	}
+
+	async setDefaultModel(
+		modelType: string,
+		provider: string,
+		model: string,
+	): Promise<{ result: string }> {
+		return this.request<{ result: string }>("/workspaces/current/default-model", {
+			method: "POST",
+			body: JSON.stringify({ model_type: modelType, provider, model }),
+		});
+	}
+
+	// --- App details ---
+
+	async getApp(appId: string): Promise<App> {
+		return this.request<App>(`/apps/${appId}`);
+	}
+
+	async updateApp(
+		appId: string,
+		name?: string,
+		description?: string,
+		icon?: string,
+		iconBackground?: string,
+	): Promise<App> {
+		const body: Record<string, string> = {};
+		if (name) body.name = name;
+		if (description !== undefined) body.description = description;
+		if (icon) body.icon = icon;
+		if (iconBackground) body.icon_background = iconBackground;
+		return this.request<App>(`/apps/${appId}`, {
+			method: "PUT",
+			body: JSON.stringify(body),
+		});
+	}
+
 	// --- MCP Servers ---
 
 	async listMCPServers(): Promise<MCPServer[]> {
