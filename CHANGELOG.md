@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-26
+
+### Added
+- **MCP Server CRUD**: Full lifecycle management for MCP servers in Dify
+  - `create_mcp_server` — add a new MCP server by URL (auto-discovers tools)
+  - `update_mcp_server` — update server URL, name, or headers
+  - `delete_mcp_server` — remove an MCP server from Dify
+  - `refresh_mcp_server_tools` — re-fetch tools after server changes
+
 ## [0.3.0] - 2026-03-26
 
 ### Added

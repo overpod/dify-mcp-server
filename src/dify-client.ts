@@ -563,4 +563,63 @@ export class DifyClient {
 	async getMCPServerTools(providerId: string): Promise<MCPServer> {
 		return this.request<MCPServer>(`/workspaces/current/tool-provider/mcp/tools/${providerId}`);
 	}
+
+	async createMCPServer(
+		name: string,
+		serverUrl: string,
+		serverIdentifier: string,
+		icon = "🔧",
+		iconBackground = "#FFEAD5",
+		headers?: Record<string, string>,
+	): Promise<MCPServer> {
+		return this.request<MCPServer>("/workspaces/current/tool-provider/mcp", {
+			method: "POST",
+			body: JSON.stringify({
+				server_url: serverUrl,
+				name,
+				icon,
+				icon_type: "emoji",
+				icon_background: iconBackground,
+				server_identifier: serverIdentifier,
+				headers: headers ?? {},
+				configuration: { timeout: 30, sse_read_timeout: 300 },
+			}),
+		});
+	}
+
+	async updateMCPServer(
+		providerId: string,
+		name: string,
+		serverUrl: string,
+		serverIdentifier: string,
+		icon = "🔧",
+		iconBackground = "#FFEAD5",
+		headers?: Record<string, string>,
+	): Promise<MCPServer> {
+		return this.request<MCPServer>("/workspaces/current/tool-provider/mcp", {
+			method: "PUT",
+			body: JSON.stringify({
+				provider_id: providerId,
+				server_url: serverUrl,
+				name,
+				icon,
+				icon_type: "emoji",
+				icon_background: iconBackground,
+				server_identifier: serverIdentifier,
+				headers: headers ?? {},
+				configuration: { timeout: 30, sse_read_timeout: 300 },
+			}),
+		});
+	}
+
+	async deleteMCPServer(providerId: string): Promise<{ result: string }> {
+		return this.request<{ result: string }>("/workspaces/current/tool-provider/mcp", {
+			method: "DELETE",
+			body: JSON.stringify({ provider_id: providerId }),
+		});
+	}
+
+	async refreshMCPServerTools(providerId: string): Promise<MCPServer> {
+		return this.request<MCPServer>(`/workspaces/current/tool-provider/mcp/update/${providerId}`);
+	}
 }

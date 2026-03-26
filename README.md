@@ -135,6 +135,10 @@ Or with npx:
 |------|-------------|
 | `list_mcp_servers` | List MCP servers configured in Dify |
 | `get_mcp_server_tools` | Get tools of a specific MCP server |
+| `create_mcp_server` | Add a new MCP server by URL |
+| `update_mcp_server` | Update server URL, name, or headers |
+| `delete_mcp_server` | Remove an MCP server |
+| `refresh_mcp_server_tools` | Re-fetch tools from an MCP server |
 
 ### Knowledge Base
 | Tool | Description |

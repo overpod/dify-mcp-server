@@ -17,7 +17,7 @@ const client = new DifyClient(DIFY_BASE_URL, DIFY_EMAIL, DIFY_PASSWORD);
 
 const server = new McpServer({
 	name: "dify-mcp-server",
-	version: "0.3.0",
+	version: "0.4.0",
 });
 
 // --- Apps ---
@@ -533,12 +533,116 @@ server.tool(
 	},
 );
 
+server.tool(
+	"create_mcp_server",
+	"Add a new MCP server to Dify by URL",
+	{
+		name: z.string().describe("Display name for the MCP server"),
+		server_url: z.string().describe("HTTP/SSE endpoint URL of the MCP server"),
+		server_identifier: z
+			.string()
+			.describe("Unique identifier (lowercase, max 24 chars, e.g. my_mcp_server)"),
+		icon: z.string().optional().describe("Emoji icon (default: 🔧)"),
+		headers: z
+			.string()
+			.optional()
+			.describe("JSON object of custom HTTP headers (e.g. Authorization)"),
+	},
+	async ({ name, server_url, server_identifier, icon, headers }) => {
+		const parsedHeaders = headers ? JSON.parse(headers) : undefined;
+		const result = await client.createMCPServer(
+			name,
+			server_url,
+			server_identifier,
+			icon,
+			undefined,
+			parsedHeaders,
+		);
+		const tools = result.tools || [];
+		return {
+			content: [
+				{
+					type: "text",
+					text: `Created MCP server: ${result.name} [${result.id}]\nURL: ${result.server_url}\nTools discovered: ${tools.length}`,
+				},
+			],
+		};
+	},
+);
+
+server.tool(
+	"update_mcp_server",
+	"Update an existing MCP server in Dify",
+	{
+		provider_id: z.string().describe("MCP server provider ID"),
+		name: z.string().describe("Updated display name"),
+		server_url: z.string().describe("Updated HTTP/SSE endpoint URL"),
+		server_identifier: z
+			.string()
+			.describe("Server identifier (cannot change after creation in some versions)"),
+		icon: z.string().optional().describe("Emoji icon"),
+		headers: z.string().optional().describe("JSON object of custom HTTP headers"),
+	},
+	async ({ provider_id, name, server_url, server_identifier, icon, headers }) => {
+		const parsedHeaders = headers ? JSON.parse(headers) : undefined;
+		const result = await client.updateMCPServer(
+			provider_id,
+			name,
+			server_url,
+			server_identifier,
+			icon,
+			undefined,
+			parsedHeaders,
+		);
+		return {
+			content: [
+				{
+					type: "text",
+					text: `Updated MCP server: ${result.name} [${result.id}]\nURL: ${result.server_url}`,
+				},
+			],
+		};
+	},
+);
+
+server.tool(
+	"delete_mcp_server",
+	"Remove an MCP server from Dify",
+	{
+		provider_id: z.string().describe("MCP server provider ID"),
+	},
+	async ({ provider_id }) => {
+		const result = await client.deleteMCPServer(provider_id);
+		return { content: [{ type: "text", text: `Deleted: ${result.result}` }] };
+	},
+);
+
+server.tool(
+	"refresh_mcp_server_tools",
+	"Re-fetch the tool list from an MCP server (use after the server adds/removes tools)",
+	{
+		provider_id: z.string().describe("MCP server provider ID"),
+	},
+	async ({ provider_id }) => {
+		const result = await client.refreshMCPServerTools(provider_id);
+		const tools = result.tools || [];
+		return {
+			content: [
+				{
+					type: "text",
+					text: `Refreshed: ${result.name}\nTools: ${tools.length}\n${tools.map((t) => `- ${t.name}`).join("\n")}`,
+				},
+			],
+		};
+	},
+);
+
 // --- Start ---
 
 async function main() {
 	const transport = new StdioServerTransport();
 	await server.connect(transport);
-	console.error("Dify MCP Server v0.3.0 running on stdio");
+	console.error("Dify MCP Server v0.4.0 running on stdio");
 }
 
 main().catch((err) => {
