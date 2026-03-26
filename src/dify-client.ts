@@ -85,7 +85,7 @@ export class DifyClient {
 			headers.Cookie = this.getCookieHeader();
 		}
 
-		if (this.csrfToken && options.method && options.method !== "GET") {
+		if (this.csrfToken) {
 			headers["X-CSRF-Token"] = this.csrfToken;
 		}
 
