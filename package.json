@@ -1,6 +1,6 @@
 {
   "name": "dify-mcp-server",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "MCP server for Dify Console API — programmatic agent/app creation, knowledge base management, workflow control",
   "type": "module",
   "main": "dist/index.js",
