@@ -17,15 +17,17 @@ const client = new DifyClient(DIFY_BASE_URL, DIFY_EMAIL, DIFY_PASSWORD);
 
 const server = new McpServer({
 	name: "dify-mcp-server",
-	version: "0.7.0",
+	version: "0.7.1",
 });
 
 // --- Apps ---
 
-server.tool(
+server.registerTool(
 	"list_apps",
-	"List all Dify applications",
-	{ page: z.number().optional(), limit: z.number().optional() },
+	{
+		description: "List all Dify applications",
+		inputSchema: { page: z.number().optional(), limit: z.number().optional() },
+	},
 	async ({ page, limit }) => {
 		const data = await client.listApps(page ?? 1, limit ?? 30);
 		const summary = data.data.map((a) => `- ${a.name} (${a.mode}) [${a.id}]`).join("\n");
@@ -35,15 +37,17 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"create_app",
-	"Create a new Dify application (chat, agent-chat, advanced-chat, workflow, completion)",
 	{
-		name: z.string().describe("Application name"),
-		mode: z
-			.enum(["chat", "agent-chat", "advanced-chat", "workflow", "completion"])
-			.describe("Application type"),
-		description: z.string().optional().describe("Application description"),
+		description: "Create a new Dify application (chat, agent-chat, advanced-chat, workflow, completion)",
+		inputSchema: {
+			name: z.string().describe("Application name"),
+			mode: z
+				.enum(["chat", "agent-chat", "advanced-chat", "workflow", "completion"])
+				.describe("Application type"),
+			description: z.string().optional().describe("Application description"),
+		},
 	},
 	async ({ name, mode, description }) => {
 		const app = await client.createApp(name, mode, description);
@@ -53,22 +57,26 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"delete_app",
-	"Delete a Dify application by ID",
-	{ app_id: z.string().describe("Application ID") },
+	{
+		description: "Delete a Dify application by ID",
+		inputSchema: { app_id: z.string().describe("Application ID") },
+	},
 	async ({ app_id }) => {
 		const result = await client.deleteApp(app_id);
 		return { content: [{ type: "text", text: `Deleted: ${result.result}` }] };
 	},
 );
 
-server.tool(
+server.registerTool(
 	"copy_app",
-	"Duplicate an existing Dify application",
 	{
-		app_id: z.string().describe("Source application ID"),
-		name: z.string().optional().describe("New name for the copy"),
+		description: "Duplicate an existing Dify application",
+		inputSchema: {
+			app_id: z.string().describe("Source application ID"),
+			name: z.string().optional().describe("New name for the copy"),
+		},
 	},
 	async ({ app_id, name }) => {
 		const app = await client.copyApp(app_id, name);
@@ -80,13 +88,15 @@ server.tool(
 
 // --- DSL Import/Export ---
 
-server.tool(
+server.registerTool(
 	"import_dsl",
-	"Import a Dify application from YAML DSL content",
 	{
-		yaml_content: z.string().describe("YAML DSL content defining the application"),
-		name: z.string().optional().describe("Override application name"),
-		description: z.string().optional().describe("Override description"),
+		description: "Import a Dify application from YAML DSL content",
+		inputSchema: {
+			yaml_content: z.string().describe("YAML DSL content defining the application"),
+			name: z.string().optional().describe("Override application name"),
+			description: z.string().optional().describe("Override description"),
+		},
 	},
 	async ({ yaml_content, name, description }) => {
 		const result = await client.importDSL(yaml_content, name, description);
@@ -99,10 +109,12 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"export_app",
-	"Export a Dify application as YAML DSL",
-	{ app_id: z.string().describe("Application ID to export") },
+	{
+		description: "Export a Dify application as YAML DSL",
+		inputSchema: { app_id: z.string().describe("Application ID to export") },
+	},
 	async ({ app_id }) => {
 		const result = await client.exportApp(app_id);
 		return { content: [{ type: "text", text: result.data }] };
@@ -111,10 +123,12 @@ server.tool(
 
 // --- Workflow ---
 
-server.tool(
+server.registerTool(
 	"get_workflow",
-	"Get the draft workflow of an application (nodes, edges, features)",
-	{ app_id: z.string().describe("Application ID") },
+	{
+		description: "Get the draft workflow of an application (nodes, edges, features)",
+		inputSchema: { app_id: z.string().describe("Application ID") },
+	},
 	async ({ app_id }) => {
 		const wf = await client.getWorkflowDraft(app_id);
 		return {
@@ -123,14 +137,16 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"update_workflow",
-	"Update the draft workflow graph of an application",
 	{
-		app_id: z.string().describe("Application ID"),
-		graph: z.string().describe("Workflow graph JSON (nodes + edges)"),
-		features: z.string().describe("Workflow features JSON"),
-		hash: z.string().describe("Current workflow hash (from get_workflow)"),
+		description: "Update the draft workflow graph of an application",
+		inputSchema: {
+			app_id: z.string().describe("Application ID"),
+			graph: z.string().describe("Workflow graph JSON (nodes + edges)"),
+			features: z.string().describe("Workflow features JSON"),
+			hash: z.string().describe("Current workflow hash (from get_workflow)"),
+		},
 	},
 	async ({ app_id, graph, features, hash }) => {
 		const result = await client.updateWorkflowDraft(
@@ -143,10 +159,12 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"publish_workflow",
-	"Publish the draft workflow to make it live",
-	{ app_id: z.string().describe("Application ID") },
+	{
+		description: "Publish the draft workflow to make it live",
+		inputSchema: { app_id: z.string().describe("Application ID") },
+	},
 	async ({ app_id }) => {
 		const result = await client.publishWorkflow(app_id);
 		return { content: [{ type: "text", text: `Published: ${result.result}` }] };
@@ -155,30 +173,36 @@ server.tool(
 
 // --- API Access ---
 
-server.tool(
+server.registerTool(
 	"enable_api",
-	"Enable API access for an application",
-	{ app_id: z.string().describe("Application ID") },
+	{
+		description: "Enable API access for an application",
+		inputSchema: { app_id: z.string().describe("Application ID") },
+	},
 	async ({ app_id }) => {
 		const result = await client.enableApi(app_id);
 		return { content: [{ type: "text", text: `API enabled: ${result.result}` }] };
 	},
 );
 
-server.tool(
+server.registerTool(
 	"enable_site",
-	"Enable web site (chat UI) access for an application",
-	{ app_id: z.string().describe("Application ID") },
+	{
+		description: "Enable web site (chat UI) access for an application",
+		inputSchema: { app_id: z.string().describe("Application ID") },
+	},
 	async ({ app_id }) => {
 		const result = await client.enableSite(app_id);
 		return { content: [{ type: "text", text: `Site enabled: ${result.result}` }] };
 	},
 );
 
-server.tool(
+server.registerTool(
 	"get_api_keys",
-	"Get API keys for an application",
-	{ app_id: z.string().describe("Application ID") },
+	{
+		description: "Get API keys for an application",
+		inputSchema: { app_id: z.string().describe("Application ID") },
+	},
 	async ({ app_id }) => {
 		const data = await client.getAppApiKeys(app_id);
 		const keys = data.data.map((k) => `- ${k.token} (${k.id})`).join("\n");
@@ -186,10 +210,12 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"create_api_key",
-	"Create a new API key for an application",
-	{ app_id: z.string().describe("Application ID") },
+	{
+		description: "Create a new API key for an application",
+		inputSchema: { app_id: z.string().describe("Application ID") },
+	},
 	async ({ app_id }) => {
 		const key = await client.createAppApiKey(app_id);
 		return { content: [{ type: "text", text: `API Key: ${key.token}\nID: ${key.id}` }] };
@@ -198,10 +224,12 @@ server.tool(
 
 // --- Knowledge Base (Datasets) ---
 
-server.tool(
+server.registerTool(
 	"list_datasets",
-	"List all knowledge base datasets",
-	{ page: z.number().optional(), limit: z.number().optional() },
+	{
+		description: "List all knowledge base datasets",
+		inputSchema: { page: z.number().optional(), limit: z.number().optional() },
+	},
 	async ({ page, limit }) => {
 		const data = await client.listDatasets(page ?? 1, limit ?? 30);
 		const summary = data.data
@@ -213,16 +241,18 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"create_dataset",
-	"Create a new knowledge base dataset",
 	{
-		name: z.string().describe("Dataset name"),
-		description: z.string().optional().describe("Dataset description"),
-		indexing_technique: z
-			.enum(["high_quality", "economy"])
-			.optional()
-			.describe("Indexing technique (default: high_quality)"),
+		description: "Create a new knowledge base dataset",
+		inputSchema: {
+			name: z.string().describe("Dataset name"),
+			description: z.string().optional().describe("Dataset description"),
+			indexing_technique: z
+				.enum(["high_quality", "economy"])
+				.optional()
+				.describe("Indexing technique (default: high_quality)"),
+		},
 	},
 	async ({ name, description, indexing_technique }) => {
 		const ds = await client.createDataset(name, description, indexing_technique ?? "high_quality");
@@ -232,23 +262,27 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"delete_dataset",
-	"Delete a knowledge base dataset",
-	{ dataset_id: z.string().describe("Dataset ID") },
+	{
+		description: "Delete a knowledge base dataset",
+		inputSchema: { dataset_id: z.string().describe("Dataset ID") },
+	},
 	async ({ dataset_id }) => {
 		await client.deleteDataset(dataset_id);
 		return { content: [{ type: "text", text: "Dataset deleted" }] };
 	},
 );
 
-server.tool(
+server.registerTool(
 	"list_documents",
-	"List documents in a knowledge base dataset",
 	{
-		dataset_id: z.string().describe("Dataset ID"),
-		page: z.number().optional(),
-		limit: z.number().optional(),
+		description: "List documents in a knowledge base dataset",
+		inputSchema: {
+			dataset_id: z.string().describe("Dataset ID"),
+			page: z.number().optional(),
+			limit: z.number().optional(),
+		},
 	},
 	async ({ dataset_id, page, limit }) => {
 		const data = await client.listDocuments(dataset_id, page ?? 1, limit ?? 30);
@@ -261,13 +295,15 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"create_document_by_text",
-	"Add a text document to a knowledge base dataset",
 	{
-		dataset_id: z.string().describe("Dataset ID"),
-		name: z.string().describe("Document name"),
-		text: z.string().describe("Document text content"),
+		description: "Add a text document to a knowledge base dataset",
+		inputSchema: {
+			dataset_id: z.string().describe("Dataset ID"),
+			name: z.string().describe("Document name"),
+			text: z.string().describe("Document text content"),
+		},
 	},
 	async ({ dataset_id, name, text }) => {
 		const result = await client.createDocumentByText(dataset_id, name, text);
@@ -282,12 +318,14 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"delete_document",
-	"Delete a document from a knowledge base dataset",
 	{
-		dataset_id: z.string().describe("Dataset ID"),
-		document_id: z.string().describe("Document ID"),
+		description: "Delete a document from a knowledge base dataset",
+		inputSchema: {
+			dataset_id: z.string().describe("Dataset ID"),
+			document_id: z.string().describe("Document ID"),
+		},
 	},
 	async ({ dataset_id, document_id }) => {
 		const result = await client.deleteDocument(dataset_id, document_id);
@@ -295,14 +333,16 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"list_segments",
-	"List segments (chunks) of a document",
 	{
-		dataset_id: z.string().describe("Dataset ID"),
-		document_id: z.string().describe("Document ID"),
-		page: z.number().optional(),
-		limit: z.number().optional(),
+		description: "List segments (chunks) of a document",
+		inputSchema: {
+			dataset_id: z.string().describe("Dataset ID"),
+			document_id: z.string().describe("Document ID"),
+			page: z.number().optional(),
+			limit: z.number().optional(),
+		},
 	},
 	async ({ dataset_id, document_id, page, limit }) => {
 		const data = await client.listSegments(dataset_id, document_id, page ?? 1, limit ?? 30);
@@ -318,15 +358,17 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"create_segment",
-	"Add a segment (chunk) to a document",
 	{
-		dataset_id: z.string().describe("Dataset ID"),
-		document_id: z.string().describe("Document ID"),
-		content: z.string().describe("Segment text content"),
-		answer: z.string().optional().describe("Segment answer (for Q&A datasets)"),
-		keywords: z.array(z.string()).optional().describe("Keywords for the segment"),
+		description: "Add a segment (chunk) to a document",
+		inputSchema: {
+			dataset_id: z.string().describe("Dataset ID"),
+			document_id: z.string().describe("Document ID"),
+			content: z.string().describe("Segment text content"),
+			answer: z.string().optional().describe("Segment answer (for Q&A datasets)"),
+			keywords: z.array(z.string()).optional().describe("Keywords for the segment"),
+		},
 	},
 	async ({ dataset_id, document_id, content, answer, keywords }) => {
 		const result = await client.createSegment(dataset_id, document_id, content, answer, keywords);
@@ -336,16 +378,18 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"update_segment",
-	"Update a segment (chunk) in a document",
 	{
-		dataset_id: z.string().describe("Dataset ID"),
-		document_id: z.string().describe("Document ID"),
-		segment_id: z.string().describe("Segment ID"),
-		content: z.string().describe("Updated text content"),
-		answer: z.string().optional().describe("Updated answer"),
-		keywords: z.array(z.string()).optional().describe("Updated keywords"),
+		description: "Update a segment (chunk) in a document",
+		inputSchema: {
+			dataset_id: z.string().describe("Dataset ID"),
+			document_id: z.string().describe("Document ID"),
+			segment_id: z.string().describe("Segment ID"),
+			content: z.string().describe("Updated text content"),
+			answer: z.string().optional().describe("Updated answer"),
+			keywords: z.array(z.string()).optional().describe("Updated keywords"),
+		},
 	},
 	async ({ dataset_id, document_id, segment_id, content, answer, keywords }) => {
 		const result = await client.updateSegment(
@@ -362,13 +406,15 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"delete_segment",
-	"Delete a segment (chunk) from a document",
 	{
-		dataset_id: z.string().describe("Dataset ID"),
-		document_id: z.string().describe("Document ID"),
-		segment_id: z.string().describe("Segment ID"),
+		description: "Delete a segment (chunk) from a document",
+		inputSchema: {
+			dataset_id: z.string().describe("Dataset ID"),
+			document_id: z.string().describe("Document ID"),
+			segment_id: z.string().describe("Segment ID"),
+		},
 	},
 	async ({ dataset_id, document_id, segment_id }) => {
 		const result = await client.deleteSegment(dataset_id, document_id, segment_id);
@@ -378,14 +424,16 @@ server.tool(
 
 // --- Model Providers ---
 
-server.tool(
+server.registerTool(
 	"list_model_providers",
-	"List all configured model providers (OpenAI, Anthropic, etc.) with their status",
 	{
-		model_type: z
-			.enum(["llm", "text-embedding", "rerank", "speech2text", "moderation", "tts"])
-			.optional()
-			.describe("Filter by model type"),
+		description: "List all configured model providers (OpenAI, Anthropic, etc.) with their status",
+		inputSchema: {
+			model_type: z
+				.enum(["llm", "text-embedding", "rerank", "speech2text", "moderation", "tts"])
+				.optional()
+				.describe("Filter by model type"),
+		},
 	},
 	async ({ model_type }) => {
 		const data = await client.listModelProviders(model_type);
@@ -403,11 +451,13 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"list_models",
-	"List models for a specific provider",
 	{
-		provider: z.string().describe("Provider identifier (e.g. openai, anthropic, azure_openai)"),
+		description: "List models for a specific provider",
+		inputSchema: {
+			provider: z.string().describe("Provider identifier (e.g. openai, anthropic, azure_openai)"),
+		},
 	},
 	async ({ provider }) => {
 		const data = await client.listProviderModels(provider);
@@ -420,13 +470,15 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"list_models_by_type",
-	"List all available models across all providers for a given type (e.g. all LLMs)",
 	{
-		model_type: z
-			.enum(["llm", "text-embedding", "rerank", "speech2text", "moderation", "tts"])
-			.describe("Model type to list"),
+		description: "List all available models across all providers for a given type (e.g. all LLMs)",
+		inputSchema: {
+			model_type: z
+				.enum(["llm", "text-embedding", "rerank", "speech2text", "moderation", "tts"])
+				.describe("Model type to list"),
+		},
 	},
 	async ({ model_type }) => {
 		const data = await client.listModelsByType(model_type);
@@ -449,12 +501,14 @@ server.tool(
 
 // --- Plugins ---
 
-server.tool(
+server.registerTool(
 	"list_plugins",
-	"List installed Dify plugins",
 	{
-		page: z.number().optional(),
-		page_size: z.number().optional(),
+		description: "List installed Dify plugins",
+		inputSchema: {
+			page: z.number().optional(),
+			page_size: z.number().optional(),
+		},
 	},
 	async ({ page, page_size }) => {
 		const data = await client.listPlugins(page ?? 1, page_size ?? 20);
@@ -472,13 +526,15 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"install_plugin",
-	"Install a plugin from the Dify marketplace",
 	{
-		plugin_unique_identifier: z
-			.string()
-			.describe("Plugin identifier (e.g. author/plugin-name:1.0.0)"),
+		description: "Install a plugin from the Dify marketplace",
+		inputSchema: {
+			plugin_unique_identifier: z
+				.string()
+				.describe("Plugin identifier (e.g. author/plugin-name:1.0.0)"),
+		},
 	},
 	async ({ plugin_unique_identifier }) => {
 		const result = await client.installPluginFromMarketplace([plugin_unique_identifier]);
@@ -493,11 +549,13 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"uninstall_plugin",
-	"Uninstall a plugin from Dify",
 	{
-		plugin_installation_id: z.string().describe("Plugin installation ID (from list_plugins)"),
+		description: "Uninstall a plugin from Dify",
+		inputSchema: {
+			plugin_installation_id: z.string().describe("Plugin installation ID (from list_plugins)"),
+		},
 	},
 	async ({ plugin_installation_id }) => {
 		const result = await client.uninstallPlugin(plugin_installation_id);
@@ -505,12 +563,14 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"upgrade_plugin",
-	"Upgrade an installed plugin to a new version from the marketplace",
 	{
-		original_plugin_id: z.string().describe("Current plugin identifier (e.g. author/plugin:1.0.0)"),
-		new_plugin_id: z.string().describe("New version identifier (e.g. author/plugin:2.0.0)"),
+		description: "Upgrade an installed plugin to a new version from the marketplace",
+		inputSchema: {
+			original_plugin_id: z.string().describe("Current plugin identifier (e.g. author/plugin:1.0.0)"),
+			new_plugin_id: z.string().describe("New version identifier (e.g. author/plugin:2.0.0)"),
+		},
 	},
 	async ({ original_plugin_id, new_plugin_id }) => {
 		const result = await client.upgradePluginFromMarketplace(original_plugin_id, new_plugin_id);
@@ -520,11 +580,13 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"get_plugin_task",
-	"Check the status of a plugin install/upgrade task",
 	{
-		task_id: z.string().describe("Task ID from install_plugin or upgrade_plugin"),
+		description: "Check the status of a plugin install/upgrade task",
+		inputSchema: {
+			task_id: z.string().describe("Task ID from install_plugin or upgrade_plugin"),
+		},
 	},
 	async ({ task_id }) => {
 		const task = await client.getPluginTask(task_id);
@@ -541,13 +603,15 @@ server.tool(
 
 // --- Default Model ---
 
-server.tool(
+server.registerTool(
 	"get_default_model",
-	"Get the default model for a given type (llm, text-embedding, rerank, etc.)",
 	{
-		model_type: z
-			.enum(["llm", "text-embedding", "rerank", "speech2text", "moderation", "tts"])
-			.describe("Model type"),
+		description: "Get the default model for a given type (llm, text-embedding, rerank, etc.)",
+		inputSchema: {
+			model_type: z
+				.enum(["llm", "text-embedding", "rerank", "speech2text", "moderation", "tts"])
+				.describe("Model type"),
+		},
 	},
 	async ({ model_type }) => {
 		const result = await client.getDefaultModel(model_type);
@@ -565,15 +629,17 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"set_default_model",
-	"Set the default model for a given type",
 	{
-		model_type: z
-			.enum(["llm", "text-embedding", "rerank", "speech2text", "moderation", "tts"])
-			.describe("Model type"),
-		provider: z.string().describe("Provider identifier (e.g. openai, anthropic)"),
-		model: z.string().describe("Model identifier (e.g. gpt-4o, claude-sonnet-4-20250514)"),
+		description: "Set the default model for a given type",
+		inputSchema: {
+			model_type: z
+				.enum(["llm", "text-embedding", "rerank", "speech2text", "moderation", "tts"])
+				.describe("Model type"),
+			provider: z.string().describe("Provider identifier (e.g. openai, anthropic)"),
+			model: z.string().describe("Model identifier (e.g. gpt-4o, claude-sonnet-4-20250514)"),
+		},
 	},
 	async ({ model_type, provider, model }) => {
 		const result = await client.setDefaultModel(model_type, provider, model);
@@ -585,11 +651,13 @@ server.tool(
 
 // --- App Details ---
 
-server.tool(
+server.registerTool(
 	"get_app",
-	"Get detailed information about a specific application",
 	{
-		app_id: z.string().describe("Application ID"),
+		description: "Get detailed information about a specific application",
+		inputSchema: {
+			app_id: z.string().describe("Application ID"),
+		},
 	},
 	async ({ app_id }) => {
 		const app = await client.getApp(app_id);
@@ -604,14 +672,16 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"update_app",
-	"Update an application's name, description, or icon",
 	{
-		app_id: z.string().describe("Application ID"),
-		name: z.string().optional().describe("New name"),
-		description: z.string().optional().describe("New description"),
-		icon: z.string().optional().describe("New emoji icon"),
+		description: "Update an application's name, description, or icon",
+		inputSchema: {
+			app_id: z.string().describe("Application ID"),
+			name: z.string().optional().describe("New name"),
+			description: z.string().optional().describe("New description"),
+			icon: z.string().optional().describe("New emoji icon"),
+		},
 	},
 	async ({ app_id, name, description, icon }) => {
 		const app = await client.updateApp(app_id, name, description, icon);
@@ -623,26 +693,32 @@ server.tool(
 
 // --- MCP Servers ---
 
-server.tool("list_mcp_servers", "List MCP servers configured in Dify", {}, async () => {
-	const servers = await client.listMCPServers();
-	const summary = servers
-		.map((s) => `- ${s.name} [${s.id}] — ${s.server_url}\n  Tools: ${s.tools?.length || 0}`)
-		.join("\n");
-	return {
-		content: [
-			{
-				type: "text",
-				text: `MCP Servers: ${servers.length}\n\n${summary || "No MCP servers configured"}`,
-			},
-		],
-	};
-});
+server.registerTool(
+	"list_mcp_servers",
+	{ description: "List MCP servers configured in Dify" },
+	async () => {
+		const servers = await client.listMCPServers();
+		const summary = servers
+			.map((s) => `- ${s.name} [${s.id}] — ${s.server_url}\n  Tools: ${s.tools?.length || 0}`)
+			.join("\n");
+		return {
+			content: [
+				{
+					type: "text",
+					text: `MCP Servers: ${servers.length}\n\n${summary || "No MCP servers configured"}`,
+				},
+			],
+		};
+	},
+);
 
-server.tool(
+server.registerTool(
 	"get_mcp_server_tools",
-	"Get tools available on a specific MCP server in Dify",
 	{
-		provider_id: z.string().describe("MCP server provider ID"),
+		description: "Get tools available on a specific MCP server in Dify",
+		inputSchema: {
+			provider_id: z.string().describe("MCP server provider ID"),
+		},
 	},
 	async ({ provider_id }) => {
 		const server_info = await client.getMCPServerTools(provider_id);
@@ -661,20 +737,22 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"create_mcp_server",
-	"Add a new MCP server to Dify by URL",
 	{
-		name: z.string().describe("Display name for the MCP server"),
-		server_url: z.string().describe("HTTP/SSE endpoint URL of the MCP server"),
-		server_identifier: z
-			.string()
-			.describe("Unique identifier (lowercase, max 24 chars, e.g. my_mcp_server)"),
-		icon: z.string().optional().describe("Emoji icon (default: 🔧)"),
-		headers: z
-			.string()
-			.optional()
-			.describe("JSON object of custom HTTP headers (e.g. Authorization)"),
+		description: "Add a new MCP server to Dify by URL",
+		inputSchema: {
+			name: z.string().describe("Display name for the MCP server"),
+			server_url: z.string().describe("HTTP/SSE endpoint URL of the MCP server"),
+			server_identifier: z
+				.string()
+				.describe("Unique identifier (lowercase, max 24 chars, e.g. my_mcp_server)"),
+			icon: z.string().optional().describe("Emoji icon (default: 🔧)"),
+			headers: z
+				.string()
+				.optional()
+				.describe("JSON object of custom HTTP headers (e.g. Authorization)"),
+		},
 	},
 	async ({ name, server_url, server_identifier, icon, headers }) => {
 		const parsedHeaders = headers ? JSON.parse(headers) : undefined;
@@ -698,18 +776,20 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"update_mcp_server",
-	"Update an existing MCP server in Dify",
 	{
-		provider_id: z.string().describe("MCP server provider ID"),
-		name: z.string().describe("Updated display name"),
-		server_url: z.string().describe("Updated HTTP/SSE endpoint URL"),
-		server_identifier: z
-			.string()
-			.describe("Server identifier (cannot change after creation in some versions)"),
-		icon: z.string().optional().describe("Emoji icon"),
-		headers: z.string().optional().describe("JSON object of custom HTTP headers"),
+		description: "Update an existing MCP server in Dify",
+		inputSchema: {
+			provider_id: z.string().describe("MCP server provider ID"),
+			name: z.string().describe("Updated display name"),
+			server_url: z.string().describe("Updated HTTP/SSE endpoint URL"),
+			server_identifier: z
+				.string()
+				.describe("Server identifier (cannot change after creation in some versions)"),
+			icon: z.string().optional().describe("Emoji icon"),
+			headers: z.string().optional().describe("JSON object of custom HTTP headers"),
+		},
 	},
 	async ({ provider_id, name, server_url, server_identifier, icon, headers }) => {
 		const parsedHeaders = headers ? JSON.parse(headers) : undefined;
@@ -733,11 +813,13 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"delete_mcp_server",
-	"Remove an MCP server from Dify",
 	{
-		provider_id: z.string().describe("MCP server provider ID"),
+		description: "Remove an MCP server from Dify",
+		inputSchema: {
+			provider_id: z.string().describe("MCP server provider ID"),
+		},
 	},
 	async ({ provider_id }) => {
 		const result = await client.deleteMCPServer(provider_id);
@@ -745,11 +827,13 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"refresh_mcp_server_tools",
-	"Re-fetch the tool list from an MCP server (use after the server adds/removes tools)",
 	{
-		provider_id: z.string().describe("MCP server provider ID"),
+		description: "Re-fetch the tool list from an MCP server (use after the server adds/removes tools)",
+		inputSchema: {
+			provider_id: z.string().describe("MCP server provider ID"),
+		},
 	},
 	async ({ provider_id }) => {
 		const result = await client.refreshMCPServerTools(provider_id);
@@ -767,11 +851,13 @@ server.tool(
 
 // --- Tags ---
 
-server.tool(
+server.registerTool(
 	"list_tags",
-	"List tags for organizing apps or knowledge bases",
 	{
-		type: z.enum(["app", "knowledge"]).optional().describe("Filter by tag type"),
+		description: "List tags for organizing apps or knowledge bases",
+		inputSchema: {
+			type: z.enum(["app", "knowledge"]).optional().describe("Filter by tag type"),
+		},
 	},
 	async ({ type }) => {
 		const tags = await client.listTags(type);
@@ -784,12 +870,14 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"create_tag",
-	"Create a new tag for organizing apps or knowledge bases",
 	{
-		name: z.string().describe("Tag name (1-50 chars)"),
-		tag_type: z.enum(["app", "knowledge"]).optional().describe("Tag type (default: app)"),
+		description: "Create a new tag for organizing apps or knowledge bases",
+		inputSchema: {
+			name: z.string().describe("Tag name (1-50 chars)"),
+			tag_type: z.enum(["app", "knowledge"]).optional().describe("Tag type (default: app)"),
+		},
 	},
 	async ({ name, tag_type }) => {
 		const tag = await client.createTag(name, tag_type ?? "app");
@@ -799,23 +887,27 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"delete_tag",
-	"Delete a tag",
-	{ tag_id: z.string().describe("Tag ID") },
+	{
+		description: "Delete a tag",
+		inputSchema: { tag_id: z.string().describe("Tag ID") },
+	},
 	async ({ tag_id }) => {
 		await client.deleteTag(tag_id);
 		return { content: [{ type: "text", text: "Tag deleted" }] };
 	},
 );
 
-server.tool(
+server.registerTool(
 	"bind_tag",
-	"Bind one or more tags to an app or knowledge base",
 	{
-		tag_ids: z.array(z.string()).describe("Array of tag IDs to bind"),
-		target_id: z.string().describe("App or dataset ID"),
-		type: z.enum(["app", "knowledge"]).describe("Target type"),
+		description: "Bind one or more tags to an app or knowledge base",
+		inputSchema: {
+			tag_ids: z.array(z.string()).describe("Array of tag IDs to bind"),
+			target_id: z.string().describe("App or dataset ID"),
+			type: z.enum(["app", "knowledge"]).describe("Target type"),
+		},
 	},
 	async ({ tag_ids, target_id, type }) => {
 		const result = await client.bindTag(tag_ids, target_id, type);
@@ -825,13 +917,15 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"unbind_tag",
-	"Remove a tag from an app or knowledge base",
 	{
-		tag_id: z.string().describe("Tag ID to remove"),
-		target_id: z.string().describe("App or dataset ID"),
-		type: z.enum(["app", "knowledge"]).describe("Target type"),
+		description: "Remove a tag from an app or knowledge base",
+		inputSchema: {
+			tag_id: z.string().describe("Tag ID to remove"),
+			target_id: z.string().describe("App or dataset ID"),
+			type: z.enum(["app", "knowledge"]).describe("Target type"),
+		},
 	},
 	async ({ tag_id, target_id, type }) => {
 		const result = await client.unbindTag(tag_id, target_id, type);
@@ -841,13 +935,15 @@ server.tool(
 
 // --- Conversations ---
 
-server.tool(
+server.registerTool(
 	"list_conversations",
-	"List conversations for a chat or completion app",
 	{
-		app_id: z.string().describe("Application ID"),
-		page: z.number().optional(),
-		limit: z.number().optional(),
+		description: "List conversations for a chat or completion app",
+		inputSchema: {
+			app_id: z.string().describe("Application ID"),
+			page: z.number().optional(),
+			limit: z.number().optional(),
+		},
 	},
 	async ({ app_id, page, limit }) => {
 		const data = await client.listChatConversations(app_id, page ?? 1, limit ?? 20);
@@ -865,12 +961,14 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"delete_conversation",
-	"Delete a conversation from an app",
 	{
-		app_id: z.string().describe("Application ID"),
-		conversation_id: z.string().describe("Conversation ID"),
+		description: "Delete a conversation from an app",
+		inputSchema: {
+			app_id: z.string().describe("Application ID"),
+			conversation_id: z.string().describe("Conversation ID"),
+		},
 	},
 	async ({ app_id, conversation_id }) => {
 		const result = await client.deleteChatConversation(app_id, conversation_id);
@@ -880,14 +978,16 @@ server.tool(
 
 // --- Messages ---
 
-server.tool(
+server.registerTool(
 	"list_messages",
-	"List messages in a conversation",
 	{
-		app_id: z.string().describe("Application ID"),
-		conversation_id: z.string().describe("Conversation ID"),
-		limit: z.number().optional().describe("Number of messages (default 20, max 100)"),
-		first_id: z.string().optional().describe("Cursor: oldest message ID from previous page"),
+		description: "List messages in a conversation",
+		inputSchema: {
+			app_id: z.string().describe("Application ID"),
+			conversation_id: z.string().describe("Conversation ID"),
+			limit: z.number().optional().describe("Number of messages (default 20, max 100)"),
+			first_id: z.string().optional().describe("Cursor: oldest message ID from previous page"),
+		},
 	},
 	async ({ app_id, conversation_id, limit, first_id }) => {
 		const data = await client.listChatMessages(app_id, conversation_id, limit ?? 20, first_id);
@@ -908,12 +1008,14 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"get_message",
-	"Get a single message with full details",
 	{
-		app_id: z.string().describe("Application ID"),
-		message_id: z.string().describe("Message ID"),
+		description: "Get a single message with full details",
+		inputSchema: {
+			app_id: z.string().describe("Application ID"),
+			message_id: z.string().describe("Message ID"),
+		},
 	},
 	async ({ app_id, message_id }) => {
 		const m = await client.getMessage(app_id, message_id);
@@ -933,7 +1035,7 @@ server.tool(
 async function main() {
 	const transport = new StdioServerTransport();
 	await server.connect(transport);
-	console.error("Dify MCP Server v0.7.0 running on stdio");
+	console.error("Dify MCP Server v0.7.1 running on stdio");
 }
 
 main().catch((err) => {
