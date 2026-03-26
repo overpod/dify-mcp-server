@@ -1,0 +1,29 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - DIFY_BASE_URL
+      - DIFY_EMAIL
+      - DIFY_PASSWORD
+    properties:
+      DIFY_BASE_URL:
+        type: string
+        description: Dify instance URL (e.g. https://dify.example.com)
+      DIFY_EMAIL:
+        type: string
+        description: Dify admin email
+      DIFY_PASSWORD:
+        type: string
+        description: Dify admin password
+  commandFunction:
+    |-
+    (config) => ({
+      command: "npx",
+      args: ["-y", "dify-mcp-server"],
+      env: {
+        DIFY_BASE_URL: config.DIFY_BASE_URL,
+        DIFY_EMAIL: config.DIFY_EMAIL,
+        DIFY_PASSWORD: config.DIFY_PASSWORD,
+      }
+    })
