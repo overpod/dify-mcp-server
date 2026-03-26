@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-26
+
+### Added
+- **Model Providers**: Read-only tools for inspecting configured AI models
+  - `list_model_providers` — list all providers (OpenAI, Anthropic, etc.) with status
+  - `list_models` — list models for a specific provider
+  - `list_models_by_type` — list all models across providers by type (llm, embedding, rerank, etc.)
+- **Plugins**: Manage Dify plugins
+  - `list_plugins` — list installed plugins with version and status
+  - `install_plugin` — install a plugin from the Dify marketplace
+- **MCP Servers**: Inspect MCP servers configured in Dify
+  - `list_mcp_servers` — list all connected MCP servers with URLs
+  - `get_mcp_server_tools` — list tools available on a specific MCP server
+
 ## [0.2.0] - 2026-03-26
 
 ### Added

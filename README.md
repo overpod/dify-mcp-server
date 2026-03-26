@@ -2,7 +2,7 @@
 
 MCP server for [Dify](https://dify.ai) Console API — programmatic agent creation, knowledge base management, workflow control.
 
-Works with self-hosted Dify v1.6+ instances.
+Works with self-hosted Dify v1.6+ instances (v1.10+ recommended for plugins and MCP tools).
 
 ## Install
 
@@ -116,6 +116,25 @@ Or with npx:
 | `enable_site` | Enable web chat UI |
 | `get_api_keys` | List API keys |
 | `create_api_key` | Create a new API key |
+
+### Model Providers
+| Tool | Description |
+|------|-------------|
+| `list_model_providers` | List all providers (OpenAI, Anthropic, etc.) with status |
+| `list_models` | List models for a specific provider |
+| `list_models_by_type` | List all models by type across all providers |
+
+### Plugins
+| Tool | Description |
+|------|-------------|
+| `list_plugins` | List installed plugins |
+| `install_plugin` | Install a plugin from the marketplace |
+
+### MCP Servers
+| Tool | Description |
+|------|-------------|
+| `list_mcp_servers` | List MCP servers configured in Dify |
+| `get_mcp_server_tools` | Get tools of a specific MCP server |
 
 ### Knowledge Base
 | Tool | Description |

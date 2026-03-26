@@ -17,7 +17,7 @@ const client = new DifyClient(DIFY_BASE_URL, DIFY_EMAIL, DIFY_PASSWORD);
 
 const server = new McpServer({
 	name: "dify-mcp-server",
-	version: "0.2.0",
+	version: "0.3.0",
 });
 
 // --- Apps ---
@@ -376,12 +376,169 @@ server.tool(
 	},
 );
 
+// --- Model Providers ---
+
+server.tool(
+	"list_model_providers",
+	"List all configured model providers (OpenAI, Anthropic, etc.) with their status",
+	{
+		model_type: z
+			.enum(["llm", "text-embedding", "rerank", "speech2text", "moderation", "tts"])
+			.optional()
+			.describe("Filter by model type"),
+	},
+	async ({ model_type }) => {
+		const data = await client.listModelProviders(model_type);
+		const summary = data.data
+			.map(
+				(p) =>
+					`- ${p.label.en_US || p.provider} [${p.provider}] — ${p.custom_configuration?.status || "not configured"} (types: ${p.supported_model_types.join(", ")})`,
+			)
+			.join("\n");
+		return {
+			content: [
+				{ type: "text", text: `Providers: ${data.data.length}\n\n${summary || "No providers"}` },
+			],
+		};
+	},
+);
+
+server.tool(
+	"list_models",
+	"List models for a specific provider",
+	{
+		provider: z.string().describe("Provider identifier (e.g. openai, anthropic, azure_openai)"),
+	},
+	async ({ provider }) => {
+		const data = await client.listProviderModels(provider);
+		const summary = data.data
+			.map((m) => `- ${m.label.en_US || m.model} [${m.model}] — ${m.status} (${m.model_type})`)
+			.join("\n");
+		return {
+			content: [{ type: "text", text: `Models: ${data.data.length}\n\n${summary || "No models"}` }],
+		};
+	},
+);
+
+server.tool(
+	"list_models_by_type",
+	"List all available models across all providers for a given type (e.g. all LLMs)",
+	{
+		model_type: z
+			.enum(["llm", "text-embedding", "rerank", "speech2text", "moderation", "tts"])
+			.describe("Model type to list"),
+	},
+	async ({ model_type }) => {
+		const data = await client.listModelsByType(model_type);
+		const summary = data.data
+			.map(
+				(m) =>
+					`- ${m.label.en_US || m.model} [${m.model}] from ${m.provider || "unknown"} — ${m.status}`,
+			)
+			.join("\n");
+		return {
+			content: [
+				{
+					type: "text",
+					text: `${model_type} models: ${data.data.length}\n\n${summary || "No models"}`,
+				},
+			],
+		};
+	},
+);
+
+// --- Plugins ---
+
+server.tool(
+	"list_plugins",
+	"List installed Dify plugins",
+	{
+		page: z.number().optional(),
+		page_size: z.number().optional(),
+	},
+	async ({ page, page_size }) => {
+		const data = await client.listPlugins(page ?? 1, page_size ?? 20);
+		const summary = data.plugins
+			.map(
+				(p) =>
+					`- ${p.label?.en_US || p.name} v${p.version} [${p.plugin_unique_identifier}] — ${p.enabled ? "enabled" : "disabled"}`,
+			)
+			.join("\n");
+		return {
+			content: [
+				{ type: "text", text: `Plugins: ${data.total}\n\n${summary || "No plugins installed"}` },
+			],
+		};
+	},
+);
+
+server.tool(
+	"install_plugin",
+	"Install a plugin from the Dify marketplace",
+	{
+		plugin_unique_identifier: z
+			.string()
+			.describe("Plugin identifier (e.g. author/plugin-name:1.0.0)"),
+	},
+	async ({ plugin_unique_identifier }) => {
+		const result = await client.installPluginFromMarketplace([plugin_unique_identifier]);
+		return {
+			content: [
+				{
+					type: "text",
+					text: `Installation started\nTask ID: ${result.task_id}\nPlugins: ${result.plugins?.join(", ") || plugin_unique_identifier}`,
+				},
+			],
+		};
+	},
+);
+
+// --- MCP Servers ---
+
+server.tool("list_mcp_servers", "List MCP servers configured in Dify", {}, async () => {
+	const servers = await client.listMCPServers();
+	const summary = servers
+		.map((s) => `- ${s.name} [${s.id}] — ${s.server_url}\n  Tools: ${s.tools?.length || 0}`)
+		.join("\n");
+	return {
+		content: [
+			{
+				type: "text",
+				text: `MCP Servers: ${servers.length}\n\n${summary || "No MCP servers configured"}`,
+			},
+		],
+	};
+});
+
+server.tool(
+	"get_mcp_server_tools",
+	"Get tools available on a specific MCP server in Dify",
+	{
+		provider_id: z.string().describe("MCP server provider ID"),
+	},
+	async ({ provider_id }) => {
+		const server_info = await client.getMCPServerTools(provider_id);
+		const tools = server_info.tools || [];
+		const summary = tools
+			.map((t) => `- ${t.name}: ${t.description || "no description"}`)
+			.join("\n");
+		return {
+			content: [
+				{
+					type: "text",
+					text: `Server: ${server_info.name} (${server_info.server_url})\nTools: ${tools.length}\n\n${summary || "No tools"}`,
+				},
+			],
+		};
+	},
+);
+
 // --- Start ---
 
 async function main() {
 	const transport = new StdioServerTransport();
 	await server.connect(transport);
-	console.error("Dify MCP Server v0.2.0 running on stdio");
+	console.error("Dify MCP Server v0.3.0 running on stdio");
 }
 
 main().catch((err) => {

@@ -12,6 +12,60 @@ interface LoginResponse {
 	data?: string;
 }
 
+interface ModelProvider {
+	provider: string;
+	label: Record<string, string>;
+	supported_model_types: string[];
+	configurate_methods: string[];
+	preferred_provider_type: string;
+	custom_configuration: { status: string };
+	system_configuration: { enabled: boolean };
+}
+
+interface Model {
+	model: string;
+	model_type: string;
+	label: Record<string, string>;
+	status: string;
+	fetch_from: string;
+	provider?: string;
+}
+
+interface Plugin {
+	plugin_id: string;
+	plugin_unique_identifier: string;
+	installation_id: string;
+	name: string;
+	label: Record<string, string>;
+	version: string;
+	enabled: boolean;
+	created_at: string;
+}
+
+interface PluginListResponse {
+	plugins: Plugin[];
+	has_more: boolean;
+	total: number;
+	page: number;
+	limit: number;
+}
+
+interface MCPServer {
+	id: string;
+	name: string;
+	server_url: string;
+	server_identifier: string;
+	icon: string;
+	tools: MCPTool[];
+	created_at: string;
+}
+
+interface MCPTool {
+	name: string;
+	description: string;
+	parameters: Record<string, unknown>;
+}
+
 interface App {
 	id: string;
 	name: string;
@@ -461,5 +515,52 @@ export class DifyClient {
 			`/datasets/${datasetId}/documents/${documentId}/segments/${segmentId}`,
 			{ method: "DELETE" },
 		);
+	}
+
+	// --- Model Providers ---
+
+	async listModelProviders(modelType?: string): Promise<{ data: ModelProvider[] }> {
+		const query = modelType ? `?model_type=${modelType}` : "";
+		return this.request<{ data: ModelProvider[] }>(`/workspaces/current/model-providers${query}`);
+	}
+
+	async listProviderModels(provider: string): Promise<{ data: Model[] }> {
+		return this.request<{ data: Model[] }>(
+			`/workspaces/current/model-providers/${provider}/models`,
+		);
+	}
+
+	async listModelsByType(modelType: string): Promise<{ data: Model[] }> {
+		return this.request<{ data: Model[] }>(`/workspaces/current/models/model-types/${modelType}`);
+	}
+
+	// --- Plugins ---
+
+	async listPlugins(page = 1, pageSize = 20): Promise<PluginListResponse> {
+		return this.request<PluginListResponse>(
+			`/workspaces/current/plugin/list?page=${page}&page_size=${pageSize}`,
+		);
+	}
+
+	async installPluginFromMarketplace(
+		pluginIdentifiers: string[],
+	): Promise<{ task_id: string; plugins: string[] }> {
+		return this.request<{ task_id: string; plugins: string[] }>(
+			"/workspaces/current/plugin/install/marketplace",
+			{
+				method: "POST",
+				body: JSON.stringify({ plugin_unique_identifiers: pluginIdentifiers }),
+			},
+		);
+	}
+
+	// --- MCP Servers ---
+
+	async listMCPServers(): Promise<MCPServer[]> {
+		return this.request<MCPServer[]>("/workspaces/current/tools/mcp");
+	}
+
+	async getMCPServerTools(providerId: string): Promise<MCPServer> {
+		return this.request<MCPServer>(`/workspaces/current/tool-provider/mcp/tools/${providerId}`);
 	}
 }
