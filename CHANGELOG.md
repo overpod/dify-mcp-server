@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-03-26
+
+### Added
+- **Unit tests**: 13 tests covering auth, auto-login, retry, apps, KB, MCP servers, tags
+  - vitest for fast testing with fetch mocking
+  - `npm test` and `npm run test:watch` scripts
+- **README v2**: Badges, "What can you do?" section, use case examples, cleaner structure
+
+### Changed
+- README reorganized with tool counts per category (52 total)
+- Description updated to reflect full Console API coverage
+
 ## [0.6.0] - 2026-03-26
 
 ### Added

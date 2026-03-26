@@ -17,7 +17,7 @@ const client = new DifyClient(DIFY_BASE_URL, DIFY_EMAIL, DIFY_PASSWORD);
 
 const server = new McpServer({
 	name: "dify-mcp-server",
-	version: "0.6.0",
+	version: "0.7.0",
 });
 
 // --- Apps ---
@@ -933,7 +933,7 @@ server.tool(
 async function main() {
 	const transport = new StdioServerTransport();
 	await server.connect(transport);
-	console.error("Dify MCP Server v0.6.0 running on stdio");
+	console.error("Dify MCP Server v0.7.0 running on stdio");
 }
 
 main().catch((err) => {

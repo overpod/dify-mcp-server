@@ -1,57 +1,48 @@
 # dify-mcp-server
 
-MCP server for [Dify](https://dify.ai) Console API — programmatic agent creation, knowledge base management, workflow control.
+[![GitHub Release](https://img.shields.io/github/v/release/overpod/dify-mcp-server)](https://github.com/overpod/dify-mcp-server/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![52 Tools](https://img.shields.io/badge/MCP_Tools-52-green)](https://github.com/overpod/dify-mcp-server)
+
+MCP server for [Dify](https://dify.ai) Console API — manage apps, workflows, knowledge bases, models, plugins, and MCP servers programmatically from Claude Code or any MCP client.
 
 Works with self-hosted Dify v1.6+ instances (v1.10+ recommended for plugins and MCP tools).
 
-## Install
+## What can you do?
 
-### Option 1: Binary (no dependencies needed)
+- Create and configure Dify apps from Claude Code
+- Import/export apps as YAML DSL templates
+- Build knowledge bases with datasets, documents, and segments
+- Manage model providers and set default models
+- Install, upgrade, and remove plugins
+- Connect MCP servers to Dify programmatically
+- Organize apps with tags
+- Browse conversation and message history
 
-Download a standalone binary from [GitHub Releases](https://github.com/overpod/dify-mcp-server/releases) — no Node.js, no Bun, nothing else required.
+## Quick Start
 
-**macOS (Apple Silicon):**
+**1. Download the binary** (no dependencies needed):
+
 ```bash
+# macOS (Apple Silicon)
 curl -L https://github.com/overpod/dify-mcp-server/releases/latest/download/dify-mcp-server-darwin-arm64 -o dify-mcp-server
 chmod +x dify-mcp-server
-```
 
-**macOS (Intel):**
-```bash
+# macOS (Intel)
 curl -L https://github.com/overpod/dify-mcp-server/releases/latest/download/dify-mcp-server-darwin-x64 -o dify-mcp-server
 chmod +x dify-mcp-server
-```
 
-**Linux (x64):**
-```bash
+# Linux (x64)
 curl -L https://github.com/overpod/dify-mcp-server/releases/latest/download/dify-mcp-server-linux-x64 -o dify-mcp-server
 chmod +x dify-mcp-server
 ```
 
-**Windows (x64):**
+Windows:
 ```powershell
 Invoke-WebRequest -Uri "https://github.com/overpod/dify-mcp-server/releases/latest/download/dify-mcp-server-windows-x64.exe" -OutFile "dify-mcp-server.exe"
 ```
 
-### Option 2: npx (requires Node.js 18+)
-
-```bash
-npx dify-mcp-server
-```
-
-### Option 3: From source
-
-```bash
-git clone https://github.com/overpod/dify-mcp-server
-cd dify-mcp-server
-npm install
-npm run build
-node dist/index.js
-```
-
-## Configuration
-
-Add to your `.mcp.json`:
+**2. Add to your `.mcp.json`:**
 
 ```json
 {
@@ -68,27 +59,26 @@ Add to your `.mcp.json`:
 }
 ```
 
-Or with npx:
+**3. Use from Claude Code:**
 
-```json
-{
-  "mcpServers": {
-    "dify": {
-      "command": "npx",
-      "args": ["dify-mcp-server"],
-      "env": {
-        "DIFY_BASE_URL": "https://your-dify-instance.com",
-        "DIFY_EMAIL": "admin@example.com",
-        "DIFY_PASSWORD": "your-password"
-      }
-    }
-  }
-}
+> "List all my Dify apps"
+> "Create a new chat app called Customer Support"
+> "Export the Customer Support app as YAML"
+> "Connect an MCP server at https://mcp.example.com/sse to Dify"
+> "What models are configured in my Dify instance?"
+
+### Alternative: From source
+
+```bash
+git clone https://github.com/overpod/dify-mcp-server
+cd dify-mcp-server
+npm install && npm run build
+node dist/index.js
 ```
 
-## Tools
+## Tools (52)
 
-### Apps
+### Apps (6)
 | Tool | Description |
 |------|-------------|
 | `list_apps` | List all applications |
@@ -98,20 +88,20 @@ Or with npx:
 | `delete_app` | Delete an application |
 | `copy_app` | Duplicate an application |
 
-### DSL Import/Export
+### DSL Import/Export (2)
 | Tool | Description |
 |------|-------------|
 | `import_dsl` | Import app from YAML DSL |
 | `export_app` | Export app as YAML DSL |
 
-### Workflow
+### Workflow (3)
 | Tool | Description |
 |------|-------------|
 | `get_workflow` | Get draft workflow (nodes, edges, features) |
 | `update_workflow` | Update draft workflow graph |
 | `publish_workflow` | Publish draft to make it live |
 
-### API Access
+### API Access (4)
 | Tool | Description |
 |------|-------------|
 | `enable_api` | Enable API access |
@@ -119,7 +109,7 @@ Or with npx:
 | `get_api_keys` | List API keys |
 | `create_api_key` | Create a new API key |
 
-### Model Providers
+### Model Providers (5)
 | Tool | Description |
 |------|-------------|
 | `list_model_providers` | List all providers (OpenAI, Anthropic, etc.) with status |
@@ -128,7 +118,7 @@ Or with npx:
 | `get_default_model` | Get the default model for a type |
 | `set_default_model` | Set the default model for a type |
 
-### Plugins
+### Plugins (5)
 | Tool | Description |
 |------|-------------|
 | `list_plugins` | List installed plugins |
@@ -137,7 +127,7 @@ Or with npx:
 | `upgrade_plugin` | Upgrade plugin to a new version |
 | `get_plugin_task` | Check install/upgrade task status |
 
-### MCP Servers
+### MCP Servers (6)
 | Tool | Description |
 |------|-------------|
 | `list_mcp_servers` | List MCP servers configured in Dify |
@@ -147,7 +137,7 @@ Or with npx:
 | `delete_mcp_server` | Remove an MCP server |
 | `refresh_mcp_server_tools` | Re-fetch tools from an MCP server |
 
-### Tags
+### Tags (5)
 | Tool | Description |
 |------|-------------|
 | `list_tags` | List all tags with binding counts |
@@ -156,7 +146,7 @@ Or with npx:
 | `bind_tag` | Attach tags to an app or dataset |
 | `unbind_tag` | Remove a tag from an app or dataset |
 
-### Conversations & Messages
+### Conversations & Messages (4)
 | Tool | Description |
 |------|-------------|
 | `list_conversations` | List conversations for an app |
@@ -164,7 +154,7 @@ Or with npx:
 | `list_messages` | List messages in a conversation |
 | `get_message` | Get full message details |
 
-### Knowledge Base
+### Knowledge Base (10)
 | Tool | Description |
 |------|-------------|
 | `list_datasets` | List all datasets |
@@ -178,24 +168,40 @@ Or with npx:
 | `update_segment` | Update a segment |
 | `delete_segment` | Delete a segment |
 
-## Workflow Examples
+## Use Case Examples
 
 ### Create an agent from template
-
-1. Export an existing app as DSL template
-2. Modify the YAML (change prompt, model, tools)
-3. Import as a new app
-4. Publish and enable API access
+```
+1. export_app → get YAML DSL of an existing app
+2. Edit the YAML (change prompt, model, tools)
+3. import_dsl → import as a new app
+4. publish_workflow → make it live
+5. enable_api + create_api_key → get API access
+```
 
 ### Build a knowledge base
+```
+1. create_dataset → new knowledge base
+2. create_document_by_text → add documents
+3. Attach dataset to an app workflow
+```
 
-1. Create a dataset
-2. Add documents by text
-3. Attach the dataset to an app's workflow
+### Connect MCP servers to Dify
+```
+1. create_mcp_server → add by URL (auto-discovers tools)
+2. list_mcp_servers → verify connection
+3. get_mcp_server_tools → see available tools
+4. refresh_mcp_server_tools → update after changes
+```
+
+### Manage model configuration
+```
+1. list_model_providers → see configured providers
+2. list_models → check available models
+3. set_default_model → set workspace default LLM
+```
 
 ## Development
-
-### Local testing
 
 ```bash
 git clone https://github.com/overpod/dify-mcp-server
@@ -203,37 +209,16 @@ cd dify-mcp-server
 npm install
 ```
 
-**Run with hot reload:**
 ```bash
+# Hot reload
 DIFY_BASE_URL=https://your-dify.com DIFY_EMAIL=admin@example.com DIFY_PASSWORD=secret npm run dev
-```
 
-**Type check and lint:**
-```bash
+# Type check and lint
 npm run check    # biome check
-npm run build    # tsc (also verifies types)
-```
+npm run build    # tsc
 
-**Test with MCP Inspector:**
-```bash
+# Test with MCP Inspector
 npx @modelcontextprotocol/inspector node dist/index.js
-```
-
-**Test in Claude Code** — add to `.mcp.json` and restart:
-```json
-{
-  "mcpServers": {
-    "dify": {
-      "command": "node",
-      "args": ["/absolute/path/to/dify-mcp-server/dist/index.js"],
-      "env": {
-        "DIFY_BASE_URL": "https://your-dify.com",
-        "DIFY_EMAIL": "admin@example.com",
-        "DIFY_PASSWORD": "secret"
-      }
-    }
-  }
-}
 ```
 
 ### Requirements
@@ -244,20 +229,12 @@ npx @modelcontextprotocol/inspector node dist/index.js
 
 ## Contributing
 
-### Pull requests
-
 1. Fork the repo and create a branch from `main`
 2. Run `npm run check` — code must pass Biome linting
 3. Run `npm run build` — code must compile without errors
 4. Test against a real Dify instance (not mocked)
 5. Update `CHANGELOG.md` under `## [Unreleased]`
 6. Keep PRs focused — one feature or fix per PR
-
-### Code style
-
-- **Formatter/linter:** [Biome](https://biomejs.dev/) (tabs, 100 line width)
-- **Language:** TypeScript strict mode
-- Run `npm run fix` to auto-format before committing
 
 ### Adding a new tool
 
@@ -266,27 +243,18 @@ npx @modelcontextprotocol/inspector node dist/index.js
 3. Add the tool to the table in `README.md`
 4. Add an entry to `CHANGELOG.md`
 
-### Commit messages
+### Code style
 
-```
-<what>: <short description>
-
-<optional body explaining why>
-```
-
-Examples:
-- `Add list_models tool for model management`
-- `Fix CSRF token not sent on GET requests`
+- **Formatter/linter:** [Biome](https://biomejs.dev/) (tabs, 100 line width)
+- **Language:** TypeScript strict mode
+- Run `npm run fix` to auto-format
 
 ### Releases
 
-Releases are automated. Maintainers tag and push:
+Releases are automated. Tag and push:
 
 ```bash
-# 1. Update version in package.json
-# 2. Update CHANGELOG.md (move Unreleased → version)
-# 3. Commit, tag, push
-git tag v0.3.0
+git tag v0.7.0
 git push --tags
 ```
 
