@@ -24,6 +24,9 @@ jobs:
       - name: Type check
         run: bun run check
 
+      - name: Run tests
+        run: bun run test
+
       - name: Build TypeScript
         run: bun run build
 
