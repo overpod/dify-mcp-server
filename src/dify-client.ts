@@ -289,7 +289,9 @@ export class DifyClient {
 			throw new Error(`Dify API ${res.status}: ${body}`);
 		}
 
-		return res.json() as Promise<T>;
+		const text = await res.text();
+		if (!text) return { result: "success" } as T;
+		return JSON.parse(text) as T;
 	}
 
 	private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
