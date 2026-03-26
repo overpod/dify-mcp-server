@@ -56,3 +56,63 @@ jobs:
             dify-mcp-server-darwin-arm64
             dify-mcp-server-darwin-x64
             dify-mcp-server-windows-x64.exe
+
+      - name: Update Homebrew formula
+        if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          SHA_DARWIN_ARM64=$(shasum -a 256 dify-mcp-server-darwin-arm64 | cut -d' ' -f1)
+          SHA_DARWIN_X64=$(shasum -a 256 dify-mcp-server-darwin-x64 | cut -d' ' -f1)
+          SHA_LINUX_X64=$(shasum -a 256 dify-mcp-server-linux-x64 | cut -d' ' -f1)
+
+          git clone https://x-access-token:${GH_TOKEN}@github.com/overpod/homebrew-tap.git /tmp/homebrew-tap
+          cd /tmp/homebrew-tap
+
+          cat > Formula/dify-mcp-server.rb << FORMULA
+          class DifyMcpServer < Formula
+            desc "MCP server for Dify Console API — 52 tools for apps, workflows, KB, models, plugins"
+            homepage "https://github.com/overpod/dify-mcp-server"
+            version "${VERSION}"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/overpod/dify-mcp-server/releases/download/v#{version}/dify-mcp-server-darwin-arm64"
+                sha256 "${SHA_DARWIN_ARM64}"
+              else
+                url "https://github.com/overpod/dify-mcp-server/releases/download/v#{version}/dify-mcp-server-darwin-x64"
+                sha256 "${SHA_DARWIN_X64}"
+              end
+            end
+
+            on_linux do
+              url "https://github.com/overpod/dify-mcp-server/releases/download/v#{version}/dify-mcp-server-linux-x64"
+              sha256 "${SHA_LINUX_X64}"
+            end
+
+            def install
+              if OS.mac? && Hardware::CPU.arm?
+                bin.install "dify-mcp-server-darwin-arm64" => "dify-mcp-server"
+              elsif OS.mac?
+                bin.install "dify-mcp-server-darwin-x64" => "dify-mcp-server"
+              else
+                bin.install "dify-mcp-server-linux-x64" => "dify-mcp-server"
+              end
+            end
+
+            test do
+              assert_match "DIFY_BASE_URL", shell_output("#{bin}/dify-mcp-server 2>&1", 1)
+            end
+          end
+          FORMULA
+
+          # Remove leading spaces from heredoc
+          sed -i 's/^          //' Formula/dify-mcp-server.rb
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/dify-mcp-server.rb
+          git commit -m "Update dify-mcp-server to ${VERSION}"
+          git push

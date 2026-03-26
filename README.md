@@ -21,7 +21,14 @@ Works with self-hosted Dify v1.6+ instances (v1.10+ recommended for plugins and 
 
 ## Quick Start
 
-**1. Download the binary** (no dependencies needed):
+**Option A: Homebrew** (macOS / Linux):
+
+```bash
+brew tap overpod/tap
+brew install dify-mcp-server
+```
+
+**Option B: Download binary** (no dependencies needed):
 
 ```bash
 # macOS (Apple Silicon)
@@ -42,7 +49,7 @@ Windows:
 Invoke-WebRequest -Uri "https://github.com/overpod/dify-mcp-server/releases/latest/download/dify-mcp-server-windows-x64.exe" -OutFile "dify-mcp-server.exe"
 ```
 
-**2. Add to your `.mcp.json`:**
+**Add to your `.mcp.json`:**
 
 ```json
 {
@@ -59,7 +66,7 @@ Invoke-WebRequest -Uri "https://github.com/overpod/dify-mcp-server/releases/late
 }
 ```
 
-**3. Use from Claude Code:**
+**Use from Claude Code:**
 
 > "List all my Dify apps"
 > "Create a new chat app called Customer Support"
@@ -72,101 +79,9 @@ Invoke-WebRequest -Uri "https://github.com/overpod/dify-mcp-server/releases/late
 ```bash
 git clone https://github.com/overpod/dify-mcp-server
 cd dify-mcp-server
-npm install && npm run build
-node dist/index.js
+bun install && bun run build
+bun dist/index.js
 ```
-
-## Tools (52)
-
-### Apps (6)
-| Tool | Description |
-|------|-------------|
-| `list_apps` | List all applications |
-| `create_app` | Create app (chat, agent-chat, advanced-chat, workflow, completion) |
-| `get_app` | Get detailed info about an application |
-| `update_app` | Update name, description, or icon |
-| `delete_app` | Delete an application |
-| `copy_app` | Duplicate an application |
-
-### DSL Import/Export (2)
-| Tool | Description |
-|------|-------------|
-| `import_dsl` | Import app from YAML DSL |
-| `export_app` | Export app as YAML DSL |
-
-### Workflow (3)
-| Tool | Description |
-|------|-------------|
-| `get_workflow` | Get draft workflow (nodes, edges, features) |
-| `update_workflow` | Update draft workflow graph |
-| `publish_workflow` | Publish draft to make it live |
-
-### API Access (4)
-| Tool | Description |
-|------|-------------|
-| `enable_api` | Enable API access |
-| `enable_site` | Enable web chat UI |
-| `get_api_keys` | List API keys |
-| `create_api_key` | Create a new API key |
-
-### Model Providers (5)
-| Tool | Description |
-|------|-------------|
-| `list_model_providers` | List all providers (OpenAI, Anthropic, etc.) with status |
-| `list_models` | List models for a specific provider |
-| `list_models_by_type` | List all models by type across all providers |
-| `get_default_model` | Get the default model for a type |
-| `set_default_model` | Set the default model for a type |
-
-### Plugins (5)
-| Tool | Description |
-|------|-------------|
-| `list_plugins` | List installed plugins |
-| `install_plugin` | Install a plugin from the marketplace |
-| `uninstall_plugin` | Remove an installed plugin |
-| `upgrade_plugin` | Upgrade plugin to a new version |
-| `get_plugin_task` | Check install/upgrade task status |
-
-### MCP Servers (6)
-| Tool | Description |
-|------|-------------|
-| `list_mcp_servers` | List MCP servers configured in Dify |
-| `get_mcp_server_tools` | Get tools of a specific MCP server |
-| `create_mcp_server` | Add a new MCP server by URL |
-| `update_mcp_server` | Update server URL, name, or headers |
-| `delete_mcp_server` | Remove an MCP server |
-| `refresh_mcp_server_tools` | Re-fetch tools from an MCP server |
-
-### Tags (5)
-| Tool | Description |
-|------|-------------|
-| `list_tags` | List all tags with binding counts |
-| `create_tag` | Create a new tag |
-| `delete_tag` | Delete a tag |
-| `bind_tag` | Attach tags to an app or dataset |
-| `unbind_tag` | Remove a tag from an app or dataset |
-
-### Conversations & Messages (4)
-| Tool | Description |
-|------|-------------|
-| `list_conversations` | List conversations for an app |
-| `delete_conversation` | Delete a conversation |
-| `list_messages` | List messages in a conversation |
-| `get_message` | Get full message details |
-
-### Knowledge Base (10)
-| Tool | Description |
-|------|-------------|
-| `list_datasets` | List all datasets |
-| `create_dataset` | Create a dataset |
-| `delete_dataset` | Delete a dataset |
-| `list_documents` | List documents in a dataset |
-| `create_document_by_text` | Add a text document |
-| `delete_document` | Delete a document |
-| `list_segments` | List segments (chunks) |
-| `create_segment` | Add a segment |
-| `update_segment` | Update a segment |
-| `delete_segment` | Delete a segment |
 
 ## Use Case Examples
 
@@ -206,33 +121,36 @@ node dist/index.js
 ```bash
 git clone https://github.com/overpod/dify-mcp-server
 cd dify-mcp-server
-npm install
+bun install
 ```
 
 ```bash
 # Hot reload
-DIFY_BASE_URL=https://your-dify.com DIFY_EMAIL=admin@example.com DIFY_PASSWORD=secret npm run dev
+DIFY_BASE_URL=https://your-dify.com DIFY_EMAIL=admin@example.com DIFY_PASSWORD=secret bun run dev
 
 # Type check and lint
-npm run check    # biome check
-npm run build    # tsc
+bun run check    # biome check
+bun run build    # tsc
+
+# Run tests
+bun run test
 
 # Test with MCP Inspector
-npx @modelcontextprotocol/inspector node dist/index.js
+npx @modelcontextprotocol/inspector bun dist/index.js
 ```
 
 ### Requirements
 
-- Node.js 18+ or Bun
+- [Bun](https://bun.sh/) 1.3+
 - Self-hosted Dify v1.6+ instance
 - Dify admin account (email/password)
 
 ## Contributing
 
 1. Fork the repo and create a branch from `main`
-2. Run `npm run check` — code must pass Biome linting
-3. Run `npm run build` — code must compile without errors
-4. Test against a real Dify instance (not mocked)
+2. Run `bun run check` — code must pass Biome linting
+3. Run `bun run build` — code must compile without errors
+4. Run `bun run test` — tests must pass
 5. Update `CHANGELOG.md` under `## [Unreleased]`
 6. Keep PRs focused — one feature or fix per PR
 
@@ -240,14 +158,13 @@ npx @modelcontextprotocol/inspector node dist/index.js
 
 1. Add the API method to `src/dify-client.ts`
 2. Register the MCP tool in `src/index.ts` with Zod schema
-3. Add the tool to the table in `README.md`
-4. Add an entry to `CHANGELOG.md`
+3. Add an entry to `CHANGELOG.md`
 
 ### Code style
 
 - **Formatter/linter:** [Biome](https://biomejs.dev/) (tabs, 100 line width)
 - **Language:** TypeScript strict mode
-- Run `npm run fix` to auto-format
+- Run `bun run fix` to auto-format
 
 ### Releases
 
