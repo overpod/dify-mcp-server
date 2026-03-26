@@ -146,6 +146,105 @@ Or with npx:
 2. Add documents by text
 3. Attach the dataset to an app's workflow
 
+## Development
+
+### Local testing
+
+```bash
+git clone https://github.com/overpod/dify-mcp-server
+cd dify-mcp-server
+npm install
+```
+
+**Run with hot reload:**
+```bash
+DIFY_BASE_URL=https://your-dify.com DIFY_EMAIL=admin@example.com DIFY_PASSWORD=secret npm run dev
+```
+
+**Type check and lint:**
+```bash
+npm run check    # biome check
+npm run build    # tsc (also verifies types)
+```
+
+**Test with MCP Inspector:**
+```bash
+npx @modelcontextprotocol/inspector node dist/index.js
+```
+
+**Test in Claude Code** — add to `.mcp.json` and restart:
+```json
+{
+  "mcpServers": {
+    "dify": {
+      "command": "node",
+      "args": ["/absolute/path/to/dify-mcp-server/dist/index.js"],
+      "env": {
+        "DIFY_BASE_URL": "https://your-dify.com",
+        "DIFY_EMAIL": "admin@example.com",
+        "DIFY_PASSWORD": "secret"
+      }
+    }
+  }
+}
+```
+
+### Requirements
+
+- Node.js 18+ or Bun
+- Self-hosted Dify v1.6+ instance
+- Dify admin account (email/password)
+
+## Contributing
+
+### Pull requests
+
+1. Fork the repo and create a branch from `main`
+2. Run `npm run check` — code must pass Biome linting
+3. Run `npm run build` — code must compile without errors
+4. Test against a real Dify instance (not mocked)
+5. Update `CHANGELOG.md` under `## [Unreleased]`
+6. Keep PRs focused — one feature or fix per PR
+
+### Code style
+
+- **Formatter/linter:** [Biome](https://biomejs.dev/) (tabs, 100 line width)
+- **Language:** TypeScript strict mode
+- Run `npm run fix` to auto-format before committing
+
+### Adding a new tool
+
+1. Add the API method to `src/dify-client.ts`
+2. Register the MCP tool in `src/index.ts` with Zod schema
+3. Add the tool to the table in `README.md`
+4. Add an entry to `CHANGELOG.md`
+
+### Commit messages
+
+```
+<what>: <short description>
+
+<optional body explaining why>
+```
+
+Examples:
+- `Add list_models tool for model management`
+- `Fix CSRF token not sent on GET requests`
+
+### Releases
+
+Releases are automated. Maintainers tag and push:
+
+```bash
+# 1. Update version in package.json
+# 2. Update CHANGELOG.md (move Unreleased → version)
+# 3. Commit, tag, push
+git tag v0.3.0
+git push --tags
+```
+
+GitHub Actions builds binaries for all platforms and creates a release with notes from CHANGELOG.
+
 ## Auth Notes
 
 - Uses Dify's undocumented Console API (`/console/api/`)
