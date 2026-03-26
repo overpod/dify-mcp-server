@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "dify": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "env": {
+        "DIFY_BASE_URL": "https://your-dify-instance.example.com",
+        "DIFY_EMAIL": "admin@example.com",
+        "DIFY_PASSWORD": "your-password"
+      }
+    }
+  }
+}
