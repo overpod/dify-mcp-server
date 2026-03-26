@@ -6,32 +6,47 @@ Works with self-hosted Dify v1.6+ instances.
 
 ## Install
 
-### Binary (no dependencies)
+### Option 1: Binary (no dependencies needed)
 
-Download from [GitHub Releases](https://github.com/overpod/dify-mcp-server/releases):
+Download a standalone binary from [GitHub Releases](https://github.com/overpod/dify-mcp-server/releases) — no Node.js, no Bun, nothing else required.
 
+**macOS (Apple Silicon):**
 ```bash
-# macOS (Apple Silicon)
 curl -L https://github.com/overpod/dify-mcp-server/releases/latest/download/dify-mcp-server-darwin-arm64 -o dify-mcp-server
 chmod +x dify-mcp-server
+```
 
-# Linux
+**macOS (Intel):**
+```bash
+curl -L https://github.com/overpod/dify-mcp-server/releases/latest/download/dify-mcp-server-darwin-x64 -o dify-mcp-server
+chmod +x dify-mcp-server
+```
+
+**Linux (x64):**
+```bash
 curl -L https://github.com/overpod/dify-mcp-server/releases/latest/download/dify-mcp-server-linux-x64 -o dify-mcp-server
 chmod +x dify-mcp-server
 ```
 
-### npx (requires Node.js)
+**Windows (x64):**
+```powershell
+Invoke-WebRequest -Uri "https://github.com/overpod/dify-mcp-server/releases/latest/download/dify-mcp-server-windows-x64.exe" -OutFile "dify-mcp-server.exe"
+```
+
+### Option 2: npx (requires Node.js 18+)
 
 ```bash
 npx dify-mcp-server
 ```
 
-### From source
+### Option 3: From source
 
 ```bash
 git clone https://github.com/overpod/dify-mcp-server
 cd dify-mcp-server
-npm install && npm run build
+npm install
+npm run build
+node dist/index.js
 ```
 
 ## Configuration
